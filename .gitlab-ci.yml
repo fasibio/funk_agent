@@ -1,0 +1,41 @@
+ buildBin: 
+    stage: buildBin
+    only:
+     - master
+    tags:
+      - dockerfasibio
+    image: golang:1.11.9-alpine3.9
+    script: 
+      - apk add make
+      - GO111MODULE=on CGO_ENABLED=0 GOOS=linux go build -mod vendor -a -installsuffix cgo -o funk_agent .
+    cache:
+      paths:
+        - funk_agent
+ buildImage: 
+    stage: buildImage
+    only:
+     - master
+    tags:
+      - dockerfasibio
+    image: docker
+    cache:
+      paths:
+        - funk_agent
+    script: 
+      - docker build --build-arg buildNumber=${CI_PIPELINE_IID} -t fasibio/funk_agent:${CI_PIPELINE_IID} .
+ publish: 
+   stage: publish
+   image: docker
+   only:
+     - master
+   tags:
+     - dockerfasibio
+   script: 
+     - docker login -u ${dockerhubuser} -p ${dockerhubpassword}
+     - docker push fasibio/funk_agent:${CI_PIPELINE_IID}
+
+
+ stages:
+   - buildBin
+   - buildImage
+   - publish
