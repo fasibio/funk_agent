@@ -29,7 +29,8 @@ func getTrackingContainer(cli *client.Client, ctx context.Context, trackAll bool
 }
 
 func StartListeningForContainer(ctx context.Context, trackAll bool, trackingContainer chan []types.Container) (*client.Client, error) {
-	cli, err := client.NewClientWithOpts(client.WithVersion("1.39"))
+
+	cli, err := client.NewEnvClient()
 	if err != nil {
 		return nil, err
 	}
