@@ -28,11 +28,7 @@ type Holder struct {
 type Props struct {
 	FunkServerUrl      string
 	InsecureSkipVerify bool
-<<<<<<< HEAD
-=======
-	TrackAll           bool
 	Connectionkey      string
->>>>>>> 3f9d1e57df83fd4e9f512174725cacbfef351561
 }
 
 func main() {
@@ -69,11 +65,7 @@ func run(c *cli.Context) error {
 		Props: Props{
 			FunkServerUrl:      c.String("funkserver"),
 			InsecureSkipVerify: c.Bool("insecureSkipVerify"),
-<<<<<<< HEAD
-=======
-			TrackAll:           c.Bool("trackall"),
 			Connectionkey:      c.String("connectionkey"),
->>>>>>> 3f9d1e57df83fd4e9f512174725cacbfef351561
 		},
 		itSelfNamedHost:    "localhost",
 		trackingContainers: make(map[string]*tracker.Tracker),
