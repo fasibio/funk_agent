@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"os"
 	"sync"
@@ -25,10 +26,33 @@ type Holder struct {
 	trackingContainers map[string]*tracker.Tracker
 }
 
+type StatsLog string
+
+// isValidate Check current value is a valid value
+func (s StatsLog) isValidate() bool {
+	switch s {
+	case StatsLogAll:
+		return true
+	case StatsLogCumulated:
+		return true
+	case StatsLogNo:
+		return true
+
+	}
+	return false
+}
+
+const (
+	StatsLogAll       StatsLog = "all"
+	StatsLogCumulated StatsLog = "cumulated"
+	StatsLogNo        StatsLog = "no"
+)
+
 type Props struct {
 	FunkServerUrl      string
 	InsecureSkipVerify bool
 	Connectionkey      string
+	LogStats           StatsLog
 }
 
 func main() {
@@ -53,6 +77,12 @@ func main() {
 			Value:  "changeMe04cf242924f6b5f96",
 			Usage:  "The connectionkey given to the funk-server to connect",
 		},
+		cli.StringFlag{
+			Name:   "logstats",
+			EnvVar: "LOG_STATS",
+			Value:  "all",
+			Usage:  "Log the statsinfo three values allowed all, cumulated (not supported now), no",
+		},
 	}
 	if err := app.Run(os.Args); err != nil {
 		logger.Get().Fatalw("Global error: " + err.Error())
@@ -61,11 +91,17 @@ func main() {
 
 func run(c *cli.Context) error {
 	logger.Initialize("info")
+	statslog := StatsLog(c.String("logstats"))
+	if !statslog.isValidate() {
+		return fmt.Errorf("logstats has no valid Parameter" + c.String("logstats"))
+	}
+
 	holder := Holder{
 		Props: Props{
 			FunkServerUrl:      c.String("funkserver"),
 			InsecureSkipVerify: c.Bool("insecureSkipVerify"),
 			Connectionkey:      c.String("connectionkey"),
+			LogStats:           statslog,
 		},
 		itSelfNamedHost:    "localhost",
 		trackingContainers: make(map[string]*tracker.Tracker),
@@ -122,9 +158,11 @@ func (w *Holder) SaveTrackingInfo() {
 		if logs != nil {
 			msg = append(msg, *logs)
 		}
-		stats := w.getStatsInfo(v)
-		if stats != nil {
-			msg = append(msg, *stats)
+		if w.Props.LogStats == StatsLogAll {
+			stats := w.getStatsInfo(v)
+			if stats != nil {
+				msg = append(msg, *stats)
+			}
 		}
 		if len(msg) != 0 {
 			err := WriteToServer(w.streamCon, msg)
@@ -143,7 +181,7 @@ func (w *Holder) SaveTrackingInfo() {
 
 func (w *Holder) getStatsInfo(v *tracker.Tracker) *Message {
 	if v.Container.Labels["funk.log.stats"] == "false" {
-		logger.Get().Infow("No stats Logging for" + v.Container.Image)
+		logger.Get().Debugw("No stats Logging for" + v.Container.Image)
 		return nil
 	}
 	stats := v.GetStats()
@@ -167,7 +205,7 @@ func (w *Holder) getStatsInfo(v *tracker.Tracker) *Message {
 
 func (w *Holder) getLogs(v *tracker.Tracker) *Message {
 	if v.Container.Labels["funk.log.logs"] == "false" {
-		logger.Get().Infow("No logs Logging for " + v.Container.Image)
+		logger.Get().Debugw("No logs Logging for " + v.Container.Image)
 		return nil
 	}
 	logs := v.GetLogs()
@@ -179,7 +217,7 @@ func (w *Holder) getLogs(v *tracker.Tracker) *Message {
 	}
 
 	if len(strLogs) > 0 {
-		logger.Get().Infow("Logs from " + v.Container.Image)
+		logger.Get().Debugw("Logs from " + v.Container.Image)
 		return &Message{
 			Time:          time.Now(),
 			Type:          MessageType_Log,
@@ -191,7 +229,7 @@ func (w *Holder) getLogs(v *tracker.Tracker) *Message {
 		}
 
 	} else {
-		logger.Get().Infow("No Logs from " + v.Container.Image)
+		logger.Get().Debugw("No Logs from " + v.Container.Image)
 		return nil
 	}
 }

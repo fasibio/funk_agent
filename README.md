@@ -6,6 +6,7 @@ INSECURE_SKIP_VERIFY =  false (default)| true => disable ssl verifikation for se
 
 FUNK_SERVER => Complete Server URL like (wss://localhost:3000)
 
+LOG_STATS => Log statsinfo values: all or  no
 
 ## Possible Labels you can give the tracking dockercontainer
 
