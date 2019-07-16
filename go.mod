@@ -1,4 +1,4 @@
-module github.com/fasibio/funk-agent
+module github.com/fasibio/funk_agent
 
 go 1.12
 
