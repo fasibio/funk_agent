@@ -5,13 +5,14 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"log"
+	"net/http"
 	"os"
 	"sync"
 	"time"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
-	"github.com/fasibio/funk-agent/tracker"
+	"github.com/fasibio/funk_agent/tracker"
 	"github.com/gorilla/websocket"
 	"github.com/urfave/cli"
 )
@@ -27,6 +28,11 @@ type Holder struct {
 type Props struct {
 	FunkServerUrl      string
 	InsecureSkipVerify bool
+<<<<<<< HEAD
+=======
+	TrackAll           bool
+	Connectionkey      string
+>>>>>>> 3f9d1e57df83fd4e9f512174725cacbfef351561
 }
 
 func main() {
@@ -46,6 +52,12 @@ func main() {
 			Value:  "ws://localhost:3000",
 			Usage:  "the url of the funk_server",
 		},
+		cli.StringFlag{
+			Name:   "connectionkey",
+			EnvVar: "CONNECTION_KEY",
+			Value:  "changeMe04cf242924f6b5f96",
+			Usage:  "The connectionkey given to the funk-server to connect",
+		},
 	}
 	if err := app.Run(os.Args); err != nil {
 		log.Fatal(err)
@@ -57,6 +69,11 @@ func run(c *cli.Context) error {
 		Props: Props{
 			FunkServerUrl:      c.String("funkserver"),
 			InsecureSkipVerify: c.Bool("insecureSkipVerify"),
+<<<<<<< HEAD
+=======
+			TrackAll:           c.Bool("trackall"),
+			Connectionkey:      c.String("connectionkey"),
+>>>>>>> 3f9d1e57df83fd4e9f512174725cacbfef351561
 		},
 		itSelfNamedHost:    "localhost",
 		trackingContainers: make(map[string]*tracker.Tracker),
@@ -174,11 +191,14 @@ func (w *Holder) getLogs(v *tracker.Tracker) *Message {
 	}
 }
 
-func openSocketConnection(url string, isDone *bool, h *Holder, isConnOpen *bool) (*websocket.Conn, error) {
+func openSocketConnection(url string, isDone *bool, h *Holder, isConnOpen *bool, connectionString string) (*websocket.Conn, error) {
 	d := websocket.Dialer{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
-	c, _, err := d.Dial(url, nil)
+	httpHeader := make(http.Header)
+	httpHeader.Add("funk.connection", connectionString)
+
+	c, _, err := d.Dial(url, httpHeader)
 	if err != nil {
 		return nil, err
 	}
@@ -190,7 +210,7 @@ func (h *Holder) openSocketConn() error {
 	if h.streamCon == nil {
 		done := false
 		conn := true
-		d, err := openSocketConnection(h.Props.FunkServerUrl+"/data/subscribe", &done, h, &conn)
+		d, err := openSocketConnection(h.Props.FunkServerUrl+"/data/subscribe", &done, h, &conn, h.Props.Connectionkey)
 		if err != nil {
 			return err
 		}

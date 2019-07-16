@@ -80,7 +80,11 @@ func (t *Tracker) readLogs() {
 		if isJSON(te) {
 			t.logs = append(t.logs, TrackerLogs(te))
 		} else {
-			te = strings.SplitN(te, " ", 2)[1]
+			teArray := strings.SplitN(te, " ", 2)
+			if len(teArray) > 1 {
+				te = teArray[1]
+			}
+
 			if isJSON(te) {
 				t.logs = append(t.logs, TrackerLogs(te))
 			} else {
