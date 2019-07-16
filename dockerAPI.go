@@ -2,10 +2,10 @@ package main
 
 import (
 	"context"
-	"log"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
+	"github.com/fasibio/funk_agent/logger"
 )
 
 func getTrackingContainer(cli *client.Client, ctx context.Context) ([]types.Container, error) {
@@ -35,14 +35,14 @@ func StartListeningForContainer(ctx context.Context, trackingContainer chan []ty
 
 	res, err := getTrackingContainer(cli, ctx)
 	if err != nil {
-		log.Println(err)
+		logger.Get().Errorw("Error by getTrackingContainer: " + err.Error())
 	} else {
 		trackingContainer <- res
 	}
 	msg, errs := cli.Events(ctx, types.EventsOptions{})
 	go func() {
 		for e := range errs {
-			log.Println(e)
+			logger.Get().Errorw("Error by Events: " + e.Error())
 		}
 	}()
 
@@ -51,7 +51,7 @@ func StartListeningForContainer(ctx context.Context, trackingContainer chan []ty
 			if m.Type == "container" {
 				res, err := getTrackingContainer(cli, ctx)
 				if err != nil {
-					log.Println(err)
+					logger.Get().Errorw("Error by getTrackingContainer: " + err.Error())
 					continue
 				}
 				trackingContainer <- res

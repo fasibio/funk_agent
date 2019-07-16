@@ -4,11 +4,11 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
-	"log"
 	"strings"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
+	"github.com/fasibio/funk_agent/logger"
 )
 
 type Tracker struct {
@@ -69,7 +69,7 @@ func (t *Tracker) readLogs() {
 		Timestamps: true,
 	})
 	if err != nil {
-		log.Println(err)
+		logger.Get().Errorw("Error Read containerlogs:" + err.Error())
 	}
 	defer clogs.Close()
 
@@ -97,7 +97,7 @@ func (t *Tracker) readLogs() {
 				}
 				bfallBack, err := json.Marshal(fallbackMessage)
 				if err != nil {
-					log.Println("Error by parsing fallback Message")
+					logger.Get().Errorw("Error parsing fallback Message:" + err.Error())
 					continue
 				}
 				t.logs = append(t.logs, TrackerLogs(bfallBack))
@@ -111,7 +111,7 @@ func (t *Tracker) streamStats() {
 	cstats, err := t.Client.ContainerStats(t.Ctx, t.Container.ID, true)
 
 	if err != nil {
-		log.Println(err)
+		logger.Get().Errorw("Error get ContainerStats:" + err.Error())
 	}
 	d := json.NewDecoder(cstats.Body)
 	defer cstats.Body.Close()

@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
-	"log"
 	"net/http"
 	"os"
 	"sync"
@@ -12,6 +11,7 @@ import (
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
+	"github.com/fasibio/funk_agent/logger"
 	"github.com/fasibio/funk_agent/tracker"
 	"github.com/gorilla/websocket"
 	"github.com/urfave/cli"
@@ -32,7 +32,6 @@ type Props struct {
 }
 
 func main() {
-	log.Println("Letz go ")
 	app := cli.NewApp()
 	app.Name = "Funk Agent"
 	app.Action = run
@@ -56,11 +55,12 @@ func main() {
 		},
 	}
 	if err := app.Run(os.Args); err != nil {
-		log.Fatal(err)
+		logger.Get().Fatalw("Global error: " + err.Error())
 	}
 }
 
 func run(c *cli.Context) error {
+	logger.Initialize("info")
 	holder := Holder{
 		Props: Props{
 			FunkServerUrl:      c.String("funkserver"),
@@ -94,7 +94,6 @@ func run(c *cli.Context) error {
 						d.Container = v
 					} else {
 						holder.trackingContainers[v.ID] = tracker.NewTracker(holder.client, v)
-						// log.Println(v.ID, w.trackingContainers[v.ID])
 					}
 				}
 				mu.Unlock()
@@ -114,30 +113,33 @@ func run(c *cli.Context) error {
 }
 
 func (w *Holder) SaveTrackingInfo() {
-	var msg []Message
 	for _, v := range w.trackingContainers {
-		logs := w.getLogs(v)
+		var msg []Message
+		logs := w.getLogs(*v)
 		if logs != nil {
 			msg = append(msg, *logs)
 		}
-		stats := w.getStatsInfo(v)
+		stats := w.getStatsInfo(*v)
 		if stats != nil {
 			msg = append(msg, *stats)
 		}
+		err := WriteToServer(w.streamCon, msg)
+		if err != nil {
+			logger.Get().Errorw("Error by write Data to Server" + err.Error())
+		}
 	}
-	WriteToServer(w.streamCon, msg)
 }
 
-func (w *Holder) getStatsInfo(v *tracker.Tracker) *Message {
+func (w *Holder) getStatsInfo(v tracker.Tracker) *Message {
 	if v.Container.Labels["funk.log.stats"] == "false" {
-		log.Println("No stats Logging for ", v.Container.Image)
+		logger.Get().Infow("No stats Logging for" + v.Container.Image)
 		return nil
 	}
 	stats := v.GetStats()
 
 	b, err := json.Marshal(stats)
 	if err != nil {
-		log.Println(err)
+		logger.Get().Errorw("Error by Marshal stats:" + err.Error())
 		return nil
 	}
 
@@ -152,9 +154,9 @@ func (w *Holder) getStatsInfo(v *tracker.Tracker) *Message {
 	}
 }
 
-func (w *Holder) getLogs(v *tracker.Tracker) *Message {
+func (w *Holder) getLogs(v tracker.Tracker) *Message {
 	if v.Container.Labels["funk.log.logs"] == "false" {
-		log.Println("No logs Logging for ", v.Container.Image)
+		logger.Get().Infow("No logs Logging for " + v.Container.Image)
 		return nil
 	}
 	logs := v.GetLogs()
@@ -166,7 +168,7 @@ func (w *Holder) getLogs(v *tracker.Tracker) *Message {
 	}
 
 	if len(strLogs) > 0 {
-		log.Println("Values !!! ")
+		logger.Get().Infow("Logs from " + v.Container.Image)
 		return &Message{
 			Time:          time.Now(),
 			Type:          MessageType_Log,
@@ -178,7 +180,7 @@ func (w *Holder) getLogs(v *tracker.Tracker) *Message {
 		}
 
 	} else {
-		log.Println("no vlaues")
+		logger.Get().Infow("No Logs from " + v.Container.Image)
 		return nil
 	}
 }
