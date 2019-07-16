@@ -27,7 +27,6 @@ type Holder struct {
 type Props struct {
 	FunkServerUrl      string
 	InsecureSkipVerify bool
-	TrackAll           bool
 }
 
 func main() {
@@ -40,11 +39,6 @@ func main() {
 			Name:   "insecureSkipVerify",
 			EnvVar: "INSECURE_SKIP_VERIFY",
 			Usage:  "Allow insecure serverconnections",
-		},
-		cli.BoolTFlag{
-			Name:   "trackall",
-			EnvVar: "TRACK_ALL",
-			Usage:  "logs all finding Containers or only one with label funk.log=true?",
 		},
 		cli.StringFlag{
 			Name:   "funkserver",
@@ -63,7 +57,6 @@ func run(c *cli.Context) error {
 		Props: Props{
 			FunkServerUrl:      c.String("funkserver"),
 			InsecureSkipVerify: c.Bool("insecureSkipVerify"),
-			TrackAll:           c.Bool("trackall"),
 		},
 		itSelfNamedHost:    "localhost",
 		trackingContainers: make(map[string]*tracker.Tracker),
@@ -74,8 +67,7 @@ func run(c *cli.Context) error {
 	}
 
 	containerChan := make(chan []types.Container, 1)
-
-	cli, err := StartListeningForContainer(context.Background(), holder.Props.TrackAll, containerChan)
+	cli, err := StartListeningForContainer(context.Background(), containerChan)
 	if err != nil {
 		panic(err)
 	}

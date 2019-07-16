@@ -8,7 +8,7 @@ import (
 	"github.com/docker/docker/client"
 )
 
-func getTrackingContainer(cli *client.Client, ctx context.Context, trackAll bool) ([]types.Container, error) {
+func getTrackingContainer(cli *client.Client, ctx context.Context) ([]types.Container, error) {
 	c, err := cli.ContainerList(ctx, types.ContainerListOptions{All: false})
 
 	if err != nil {
@@ -17,10 +17,8 @@ func getTrackingContainer(cli *client.Client, ctx context.Context, trackAll bool
 
 	var res []types.Container
 	for _, one := range c {
-		if !trackAll {
-			if one.Labels["funk.log"] == "true" {
-				res = append(res, one)
-			}
+		if one.Labels["funk.log"] == "false" {
+			continue
 		} else {
 			res = append(res, one)
 		}
@@ -28,14 +26,14 @@ func getTrackingContainer(cli *client.Client, ctx context.Context, trackAll bool
 	return res, nil
 }
 
-func StartListeningForContainer(ctx context.Context, trackAll bool, trackingContainer chan []types.Container) (*client.Client, error) {
+func StartListeningForContainer(ctx context.Context, trackingContainer chan []types.Container) (*client.Client, error) {
 
 	cli, err := client.NewEnvClient()
 	if err != nil {
 		return nil, err
 	}
 
-	res, err := getTrackingContainer(cli, ctx, trackAll)
+	res, err := getTrackingContainer(cli, ctx)
 	if err != nil {
 		log.Println(err)
 	} else {
@@ -51,7 +49,7 @@ func StartListeningForContainer(ctx context.Context, trackAll bool, trackingCont
 	go func() {
 		for m := range msg {
 			if m.Type == "container" {
-				res, err := getTrackingContainer(cli, ctx, trackAll)
+				res, err := getTrackingContainer(cli, ctx)
 				if err != nil {
 					log.Println(err)
 					continue
