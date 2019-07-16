@@ -15,3 +15,4 @@ funk.log.stats = false | true (default)  => Log Stats info for this Container ?
 
 funk.log.logs = false | true (default ) => Log Stdout for this Container ? 
 
+funk.searchindex => the eleaticsearch index to log. It will generate to index for log and for stats info.  if empty it will use default_(logs|stats)

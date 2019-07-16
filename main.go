@@ -71,10 +71,13 @@ func run(c *cli.Context) error {
 		trackingContainers: make(map[string]*tracker.Tracker),
 	}
 	err := holder.openSocketConn()
-	if err != nil {
-		return err
+	for err != nil {
+		err = holder.openSocketConn()
+		logger.Get().Errorw("No connection to Server... Wait 5s and try again later")
+		time.Sleep(5 * time.Second)
 	}
 
+	logger.Get().Infow("Connected to Funk-Server")
 	containerChan := make(chan []types.Container, 1)
 	cli, err := StartListeningForContainer(context.Background(), containerChan)
 	if err != nil {
@@ -115,22 +118,30 @@ func run(c *cli.Context) error {
 func (w *Holder) SaveTrackingInfo() {
 	for _, v := range w.trackingContainers {
 		var msg []Message
-		logs := w.getLogs(*v)
+		logs := w.getLogs(v)
 		if logs != nil {
 			msg = append(msg, *logs)
 		}
-		stats := w.getStatsInfo(*v)
+		stats := w.getStatsInfo(v)
 		if stats != nil {
 			msg = append(msg, *stats)
 		}
-		err := WriteToServer(w.streamCon, msg)
-		if err != nil {
-			logger.Get().Errorw("Error by write Data to Server" + err.Error())
+		if len(msg) != 0 {
+			err := WriteToServer(w.streamCon, msg)
+			if err != nil {
+				logger.Get().Errorw("Error by write Data to Server" + err.Error() + " try to reconnect")
+
+				err := w.openSocketConn()
+				if err != nil {
+					logger.Get().Errorw("Can not connect try again later: ", err.Error())
+				}
+			}
+
 		}
 	}
 }
 
-func (w *Holder) getStatsInfo(v tracker.Tracker) *Message {
+func (w *Holder) getStatsInfo(v *tracker.Tracker) *Message {
 	if v.Container.Labels["funk.log.stats"] == "false" {
 		logger.Get().Infow("No stats Logging for" + v.Container.Image)
 		return nil
@@ -154,7 +165,7 @@ func (w *Holder) getStatsInfo(v tracker.Tracker) *Message {
 	}
 }
 
-func (w *Holder) getLogs(v tracker.Tracker) *Message {
+func (w *Holder) getLogs(v *tracker.Tracker) *Message {
 	if v.Container.Labels["funk.log.logs"] == "false" {
 		logger.Get().Infow("No logs Logging for " + v.Container.Image)
 		return nil
