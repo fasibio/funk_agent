@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"strings"
+	"time"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
@@ -60,6 +61,8 @@ func isJSON(s string) bool {
 
 }
 
+var startDate time.Time = time.Now()
+
 func (t *Tracker) readLogs() {
 	clogs, err := t.Client.ContainerLogs(t.Ctx, t.Container.ID, types.ContainerLogsOptions{
 		Details:    false,
@@ -67,6 +70,7 @@ func (t *Tracker) readLogs() {
 		ShowStderr: true,
 		ShowStdout: true,
 		Timestamps: true,
+		Since:      startDate.Format("2006-01-02T15:04:05"),
 	})
 	if err != nil {
 		logger.Get().Errorw("Error Read containerlogs:" + err.Error())
