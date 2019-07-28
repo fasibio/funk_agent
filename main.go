@@ -106,9 +106,9 @@ func run(c *cli.Context) error {
 		itSelfNamedHost:    "localhost",
 		trackingContainers: make(map[string]*tracker.Tracker),
 	}
-	err := holder.openSocketConn()
+	err := holder.openSocketConn(false)
 	for err != nil {
-		err = holder.openSocketConn()
+		err = holder.openSocketConn(false)
 		logger.Get().Errorw("No connection to Server... Wait 5s and try again later")
 		time.Sleep(5 * time.Second)
 	}
@@ -167,11 +167,13 @@ func (w *Holder) SaveTrackingInfo() {
 		if len(msg) != 0 {
 			err := WriteToServer(w.streamCon, msg)
 			if err != nil {
-				logger.Get().Errorw("Error by write Data to Server" + err.Error() + " try to reconnect")
+				logger.Get().Warnw("Error by write Data to Server" + err.Error() + " try to reconnect")
 
-				err := w.openSocketConn()
+				err := w.openSocketConn(true)
 				if err != nil {
-					logger.Get().Errorw("Can not connect try again later: ", err.Error())
+					logger.Get().Warnw("Can not connect try again later: " + err.Error())
+				} else {
+					logger.Get().Infow("Connected to Funk-Server")
 				}
 			}
 
@@ -249,8 +251,8 @@ func openSocketConnection(url string, isDone *bool, h *Holder, isConnOpen *bool,
 
 }
 
-func (h *Holder) openSocketConn() error {
-	if h.streamCon == nil {
+func (h *Holder) openSocketConn(force bool) error {
+	if h.streamCon == nil || force {
 		done := false
 		conn := true
 		d, err := openSocketConnection(h.Props.FunkServerUrl+"/data/subscribe", &done, h, &conn, h.Props.Connectionkey)
