@@ -126,7 +126,11 @@ func run(c *cli.Context) error {
 		time.Sleep(5 * time.Second)
 	}
 
-	logger.Get().Infow("Connected to Funk-Server")
+	if holder.Props.SwarmMode {
+		logger.Get().Infow("Connected to Funk-Server with Swarm Mode")
+	} else {
+		logger.Get().Infow("Connected to Funk-Server")
+	}
 	containerChan := make(chan []types.Container, 1)
 	cli, info, err := StartListeningForContainer(context.Background(), containerChan)
 	if err != nil {
