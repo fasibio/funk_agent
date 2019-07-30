@@ -83,6 +83,12 @@ func main() {
 			Value:  "all",
 			Usage:  "Log the statsinfo three values allowed all, cumulated (not supported now), no",
 		},
+		cli.StringFlag{
+			Name:   "loglevel",
+			EnvVar: "LOG_LEVEL",
+			Value:  "info",
+			Usage:  "Log the statsinfo three values allowed all, cumulated (not supported now), no",
+		},
 	}
 	if err := app.Run(os.Args); err != nil {
 		logger.Get().Fatalw("Global error: " + err.Error())
@@ -90,7 +96,7 @@ func main() {
 }
 
 func run(c *cli.Context) error {
-	logger.Initialize("info")
+	logger.Initialize(c.String("loglevel"))
 	statslog := StatsLog(c.String("logstats"))
 	if !statslog.isValidate() {
 		return fmt.Errorf("logstats has no valid Parameter" + c.String("logstats"))
@@ -115,10 +121,11 @@ func run(c *cli.Context) error {
 
 	logger.Get().Infow("Connected to Funk-Server")
 	containerChan := make(chan []types.Container, 1)
-	cli, err := StartListeningForContainer(context.Background(), containerChan)
+	cli, info, err := StartListeningForContainer(context.Background(), containerChan)
 	if err != nil {
 		panic(err)
 	}
+	holder.itSelfNamedHost = info.Name
 
 	mu := sync.Mutex{}
 
@@ -183,7 +190,7 @@ func (w *Holder) SaveTrackingInfo() {
 
 func (w *Holder) getStatsInfo(v *tracker.Tracker) *Message {
 	if v.Container.Labels["funk.log.stats"] == "false" {
-		logger.Get().Debugw("No stats Logging for" + v.Container.Image)
+		logger.Get().Debugw("No stats Logging for" + v.Container.Names[0])
 		return nil
 	}
 	stats := v.GetStats()
@@ -198,7 +205,7 @@ func (w *Holder) getStatsInfo(v *tracker.Tracker) *Message {
 		Time:          time.Now(),
 		Type:          MessageType_Stats,
 		Data:          []string{string(b)},
-		Containername: v.Container.Image,
+		Containername: v.Container.Names[0],
 		Host:          w.itSelfNamedHost,
 		SearchIndex:   v.SearchIndex() + "_stats",
 		ContainerID:   v.Container.ImageID,
@@ -207,7 +214,7 @@ func (w *Holder) getStatsInfo(v *tracker.Tracker) *Message {
 
 func (w *Holder) getLogs(v *tracker.Tracker) *Message {
 	if v.Container.Labels["funk.log.logs"] == "false" {
-		logger.Get().Debugw("No logs Logging for " + v.Container.Image)
+		logger.Get().Debugw("No logs Logging for " + v.Container.Names[0])
 		return nil
 	}
 	logs := v.GetLogs()
@@ -219,19 +226,19 @@ func (w *Holder) getLogs(v *tracker.Tracker) *Message {
 	}
 
 	if len(strLogs) > 0 {
-		logger.Get().Debugw("Logs from " + v.Container.Image)
+		logger.Get().Debugw("Logs from " + v.Container.Names[0])
 		return &Message{
 			Time:          time.Now(),
 			Type:          MessageType_Log,
 			Data:          strLogs,
-			Containername: v.Container.Image,
+			Containername: v.Container.Names[0],
 			Host:          w.itSelfNamedHost,
 			SearchIndex:   v.SearchIndex() + "_logs",
 			ContainerID:   v.Container.ImageID,
 		}
 
 	} else {
-		logger.Get().Debugw("No Logs from " + v.Container.Image)
+		logger.Get().Debugw("No Logs from " + v.Container.Names[0])
 		return nil
 	}
 }

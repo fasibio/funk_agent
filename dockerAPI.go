@@ -26,11 +26,11 @@ func getTrackingContainer(cli *client.Client, ctx context.Context) ([]types.Cont
 	return res, nil
 }
 
-func StartListeningForContainer(ctx context.Context, trackingContainer chan []types.Container) (*client.Client, error) {
+func StartListeningForContainer(ctx context.Context, trackingContainer chan []types.Container) (*client.Client, *types.Info, error) {
 
 	cli, err := client.NewEnvClient()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	res, err := getTrackingContainer(cli, ctx)
@@ -38,6 +38,11 @@ func StartListeningForContainer(ctx context.Context, trackingContainer chan []ty
 		logger.Get().Errorw("Error by getTrackingContainer: " + err.Error())
 	} else {
 		trackingContainer <- res
+	}
+	info, err := cli.Info(ctx)
+
+	if err != nil {
+		return nil, nil, err
 	}
 	msg, errs := cli.Events(ctx, types.EventsOptions{})
 	go func() {
@@ -58,5 +63,5 @@ func StartListeningForContainer(ctx context.Context, trackingContainer chan []ty
 			}
 		}
 	}()
-	return cli, nil
+	return cli, &info, nil
 }
