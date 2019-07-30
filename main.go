@@ -53,6 +53,7 @@ type Props struct {
 	InsecureSkipVerify bool
 	Connectionkey      string
 	LogStats           StatsLog
+	SwarmMode          bool
 }
 
 func main() {
@@ -70,6 +71,11 @@ func main() {
 			EnvVar: "FUNK_SERVER",
 			Value:  "ws://localhost:3000",
 			Usage:  "the url of the funk_server",
+		},
+		cli.BoolFlag{
+			Name:   "swarmmode",
+			EnvVar: "SWARM_MODE",
+			Usage:  "Set this field if the agent runs on a swarm cluster host to optimize the outputs of metadata",
 		},
 		cli.StringFlag{
 			Name:   "connectionkey",
@@ -108,6 +114,7 @@ func run(c *cli.Context) error {
 			InsecureSkipVerify: c.Bool("insecureSkipVerify"),
 			Connectionkey:      c.String("connectionkey"),
 			LogStats:           statslog,
+			SwarmMode:          c.Bool("swarmmode"),
 		},
 		itSelfNamedHost:    "localhost",
 		trackingContainers: make(map[string]*tracker.Tracker),
@@ -201,6 +208,19 @@ func (w *Holder) getStatsInfo(v *tracker.Tracker) *Message {
 		return nil
 	}
 
+	if w.Props.SwarmMode {
+		return &Message{
+			Time:          time.Now(),
+			Type:          MessageType_Stats,
+			Data:          []string{string(b)},
+			Containername: v.Container.Labels["com.docker.swarm.task.name"],
+			Servicename:   v.Container.Labels["com.docker.swarm.service.name"],
+			Namespace:     v.Container.Labels["com.docker.stack.namespace"],
+			Host:          w.itSelfNamedHost,
+			SearchIndex:   v.SearchIndex() + "_stats",
+			ContainerID:   v.Container.ImageID,
+		}
+	}
 	return &Message{
 		Time:          time.Now(),
 		Type:          MessageType_Stats,
@@ -210,6 +230,7 @@ func (w *Holder) getStatsInfo(v *tracker.Tracker) *Message {
 		SearchIndex:   v.SearchIndex() + "_stats",
 		ContainerID:   v.Container.ImageID,
 	}
+
 }
 
 func (w *Holder) getLogs(v *tracker.Tracker) *Message {
@@ -227,6 +248,19 @@ func (w *Holder) getLogs(v *tracker.Tracker) *Message {
 
 	if len(strLogs) > 0 {
 		logger.Get().Debugw("Logs from " + v.Container.Names[0])
+		if w.Props.SwarmMode {
+			return &Message{
+				Time:          time.Now(),
+				Type:          MessageType_Log,
+				Data:          strLogs,
+				Containername: v.Container.Labels["com.docker.swarm.task.name"],
+				Servicename:   v.Container.Labels["com.docker.swarm.service.name"],
+				Namespace:     v.Container.Labels["com.docker.stack.namespace"],
+				Host:          w.itSelfNamedHost,
+				SearchIndex:   v.SearchIndex() + "_logs",
+				ContainerID:   v.Container.ImageID,
+			}
+		}
 		return &Message{
 			Time:          time.Now(),
 			Type:          MessageType_Log,
