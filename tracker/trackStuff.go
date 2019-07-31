@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"strings"
 	"time"
 
@@ -79,36 +80,42 @@ func (t *Tracker) readLogs() {
 
 	r := bufio.NewScanner(clogs)
 	for r.Scan() {
-
 		te := r.Text()
-		if isJSON(te) {
-			t.logs = append(t.logs, TrackerLogs(te))
-		} else {
-			teArray := strings.SplitN(te, " ", 2)
-			if len(teArray) > 1 {
-				te = teArray[1]
-			}
-
-			if isJSON(te) {
-				t.logs = append(t.logs, TrackerLogs(te))
-			} else {
-				type fallback struct {
-					Message string `json:"message,omitempty"`
-				}
-
-				fallbackMessage := fallback{
-					Message: te,
-				}
-				bfallBack, err := json.Marshal(fallbackMessage)
-				if err != nil {
-					logger.Get().Errorw("Error parsing fallback Message:" + err.Error())
-					continue
-				}
-				t.logs = append(t.logs, TrackerLogs(bfallBack))
-			}
-
+		track, err := getTrackerLog(te)
+		if err != nil {
+			logger.Get().Errorw(err.Error())
+			continue
 		}
+		t.logs = append(t.logs, track)
 	}
+}
+
+func getTrackerLog(text string) (TrackerLogs, error) {
+	te := text
+	if isJSON(te) {
+		return TrackerLogs(te), nil
+	}
+	teArray := strings.SplitN(te, " ", 2)
+	if len(teArray) > 1 {
+		te = teArray[1]
+	}
+	if isJSON(te) {
+		return TrackerLogs(te), nil
+	}
+	type fallback struct {
+		Message string `json:"message,omitempty"`
+	}
+
+	fallbackMessage := fallback{
+		Message: te,
+	}
+	bfallBack, err := json.Marshal(fallbackMessage)
+	var reserr error = nil
+	if err != nil {
+		reserr = errors.New("Error parsing fallback Message:" + err.Error())
+	}
+	return TrackerLogs(bfallBack), reserr
+
 }
 
 func (t *Tracker) streamStats() {
