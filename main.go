@@ -135,11 +135,7 @@ func run(c *cli.Context) error {
 		time.Sleep(5 * time.Second)
 	}
 
-	if holder.Props.SwarmMode {
-		logger.Get().Infow("Connected to Funk-Server with Swarm Mode")
-	} else {
-		logger.Get().Infow("Connected to Funk-Server")
-	}
+	logger.Get().Infow("Connected to Funk-Server", "swarmmode", holder.Props.SwarmMode)
 	containerChan := make(chan []types.Container, 1)
 	cli, info, err := StartListeningForContainer(context.Background(), containerChan)
 	if err != nil {
@@ -150,34 +146,42 @@ func run(c *cli.Context) error {
 	mu := sync.Mutex{}
 
 	holder.client = cli
-	go func() {
-		for {
-			for c := range containerChan {
-				mu.Lock()
-				for _, v := range c {
-					d, exist := holder.trackingContainers[v.ID]
-					if exist {
-						d.Container = v
-					} else {
-						holder.trackingContainers[v.ID] = tracker.NewTracker(holder.client, v)
-					}
-				}
-				mu.Unlock()
-			}
-		}
-	}()
-
+	go holder.updateTrackingContainer(containerChan, &mu)
 	ticker := time.NewTicker(5 * time.Second)
+	holder.uploadTrackingInformation(&mu, ticker)
+	return nil
+}
+
+// Will stock the process forever like a tcplistener
+func (w *Holder) uploadTrackingInformation(mu *sync.Mutex, intervall *time.Ticker) {
+
 	for {
-		for range ticker.C {
+		for range intervall.C {
 			mu.Lock()
-			for _, v := range holder.trackingContainers {
-				holder.SaveTrackingInfo(v)
+			for _, v := range w.trackingContainers {
+				w.SaveTrackingInfo(v)
 			}
 			mu.Unlock()
 		}
 	}
+}
 
+// Will stock the process forever start it in own go routine
+func (w *Holder) updateTrackingContainer(containerChan chan []types.Container, mu *sync.Mutex) {
+	for {
+		for c := range containerChan {
+			mu.Lock()
+			for _, v := range c {
+				d, exist := w.trackingContainers[v.ID]
+				if exist {
+					d.Container = v
+				} else {
+					w.trackingContainers[v.ID] = tracker.NewTracker(w.client, v)
+				}
+			}
+			mu.Unlock()
+		}
+	}
 }
 
 func (w *Holder) SaveTrackingInfo(data *tracker.Tracker) {
@@ -278,7 +282,7 @@ func (w *Holder) getLogs(v *tracker.Tracker) *Message {
 	}
 }
 
-func openSocketConnection(url string, h *Holder, isConnOpen *bool, connectionString string) (*websocket.Conn, error) {
+func openSocketConnection(url string, connectionString string) (*websocket.Conn, error) {
 	d := websocket.Dialer{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
@@ -295,8 +299,7 @@ func openSocketConnection(url string, h *Holder, isConnOpen *bool, connectionStr
 
 func (h *Holder) openSocketConn(force bool) error {
 	if h.streamCon == nil || force {
-		conn := true
-		d, err := openSocketConnection(h.Props.FunkServerUrl+"/data/subscribe", h, &conn, h.Props.Connectionkey)
+		d, err := openSocketConnection(h.Props.FunkServerUrl+"/data/subscribe", h.Props.Connectionkey)
 		if err != nil {
 			return err
 		}
