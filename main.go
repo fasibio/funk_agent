@@ -56,41 +56,50 @@ type Props struct {
 	SwarmMode          bool
 }
 
+const (
+	Clikey_InsecureSkipVerify string = "insecureSkipVerify"
+	Clikey_Funkserver         string = "funkserver"
+	Clikey_Swarmmode          string = "swarmmode"
+	Clikey_Connectionkey      string = "connectionkey"
+	Clikey_Logstats           string = "logstats"
+	Clikey_Loglevel           string = "loglevel"
+)
+
 func main() {
 	app := cli.NewApp()
 	app.Name = "Funk Agent"
 	app.Action = run
 	app.Flags = []cli.Flag{
 		cli.BoolFlag{
-			Name:   "insecureSkipVerify",
+			Name:   Clikey_InsecureSkipVerify,
 			EnvVar: "INSECURE_SKIP_VERIFY",
 			Usage:  "Allow insecure serverconnections",
 		},
 		cli.StringFlag{
-			Name:   "funkserver",
+			Name:   Clikey_Funkserver,
 			EnvVar: "FUNK_SERVER",
 			Value:  "ws://localhost:3000",
 			Usage:  "the url of the funk_server",
 		},
 		cli.BoolFlag{
-			Name:   "swarmmode",
+			Name:   Clikey_Swarmmode,
 			EnvVar: "SWARM_MODE",
 			Usage:  "Set this field if the agent runs on a swarm cluster host to optimize the outputs of metadata",
 		},
 		cli.StringFlag{
-			Name:   "connectionkey",
+			Name:   Clikey_Connectionkey,
 			EnvVar: "CONNECTION_KEY",
 			Value:  "changeMe04cf242924f6b5f96",
 			Usage:  "The connectionkey given to the funk-server to connect",
 		},
 		cli.StringFlag{
-			Name:   "logstats",
+			Name:   Clikey_Logstats,
 			EnvVar: "LOG_STATS",
 			Value:  "all",
 			Usage:  "Log the statsinfo three values allowed all, cumulated (not supported now), no",
 		},
 		cli.StringFlag{
-			Name:   "loglevel",
+			Name:   Clikey_Loglevel,
 			EnvVar: "LOG_LEVEL",
 			Value:  "info",
 			Usage:  "Log the statsinfo three values allowed all, cumulated (not supported now), no",
@@ -102,19 +111,19 @@ func main() {
 }
 
 func run(c *cli.Context) error {
-	logger.Initialize(c.String("loglevel"))
-	statslog := StatsLog(c.String("logstats"))
+	logger.Initialize(c.String(Clikey_Loglevel))
+	statslog := StatsLog(c.String(Clikey_Logstats))
 	if !statslog.isValidate() {
-		return fmt.Errorf("logstats has no valid Parameter" + c.String("logstats"))
+		return fmt.Errorf("logstats has no valid Parameter" + c.String(Clikey_Logstats))
 	}
 
 	holder := Holder{
 		Props: Props{
-			FunkServerUrl:      c.String("funkserver"),
-			InsecureSkipVerify: c.Bool("insecureSkipVerify"),
-			Connectionkey:      c.String("connectionkey"),
+			FunkServerUrl:      c.String(Clikey_Funkserver),
+			InsecureSkipVerify: c.Bool(Clikey_InsecureSkipVerify),
+			Connectionkey:      c.String(Clikey_Connectionkey),
 			LogStats:           statslog,
-			SwarmMode:          c.Bool("swarmmode"),
+			SwarmMode:          c.Bool(Clikey_Swarmmode),
 		},
 		itSelfNamedHost:    "localhost",
 		trackingContainers: make(map[string]*tracker.Tracker),
@@ -162,41 +171,42 @@ func run(c *cli.Context) error {
 	for {
 		for range ticker.C {
 			mu.Lock()
-			holder.SaveTrackingInfo()
+			for _, v := range holder.trackingContainers {
+				holder.SaveTrackingInfo(v)
+			}
 			mu.Unlock()
 		}
 	}
 
 }
 
-func (w *Holder) SaveTrackingInfo() {
-	for _, v := range w.trackingContainers {
-		var msg []Message
-		logs := w.getLogs(v)
-		if logs != nil {
-			msg = append(msg, *logs)
-		}
-		if w.Props.LogStats == StatsLogAll {
-			stats := w.getStatsInfo(v)
-			if stats != nil {
-				msg = append(msg, *stats)
-			}
-		}
-		if len(msg) != 0 {
-			err := WriteToServer(w.streamCon, msg)
-			if err != nil {
-				logger.Get().Warnw("Error by write Data to Server" + err.Error() + " try to reconnect")
-
-				err := w.openSocketConn(true)
-				if err != nil {
-					logger.Get().Warnw("Can not connect try again later: " + err.Error())
-				} else {
-					logger.Get().Infow("Connected to Funk-Server")
-				}
-			}
-
+func (w *Holder) SaveTrackingInfo(data *tracker.Tracker) {
+	var msg []Message
+	logs := w.getLogs(data)
+	if logs != nil {
+		msg = append(msg, *logs)
+	}
+	if w.Props.LogStats == StatsLogAll {
+		stats := w.getStatsInfo(data)
+		if stats != nil {
+			msg = append(msg, *stats)
 		}
 	}
+	if len(msg) != 0 {
+		err := WriteToServer(w.streamCon, msg)
+		if err != nil {
+			logger.Get().Warnw("Error by write Data to Server" + err.Error() + " try to reconnect")
+
+			err := w.openSocketConn(true)
+			if err != nil {
+				logger.Get().Warnw("Can not connect try again later: " + err.Error())
+			} else {
+				logger.Get().Infow("Connected to Funk-Server")
+			}
+		}
+
+	}
+
 }
 
 func (w *Holder) getStatsInfo(v *tracker.Tracker) *Message {
@@ -268,7 +278,7 @@ func (w *Holder) getLogs(v *tracker.Tracker) *Message {
 	}
 }
 
-func openSocketConnection(url string, isDone *bool, h *Holder, isConnOpen *bool, connectionString string) (*websocket.Conn, error) {
+func openSocketConnection(url string, h *Holder, isConnOpen *bool, connectionString string) (*websocket.Conn, error) {
 	d := websocket.Dialer{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
@@ -285,9 +295,8 @@ func openSocketConnection(url string, isDone *bool, h *Holder, isConnOpen *bool,
 
 func (h *Holder) openSocketConn(force bool) error {
 	if h.streamCon == nil || force {
-		done := false
 		conn := true
-		d, err := openSocketConnection(h.Props.FunkServerUrl+"/data/subscribe", &done, h, &conn, h.Props.Connectionkey)
+		d, err := openSocketConnection(h.Props.FunkServerUrl+"/data/subscribe", h, &conn, h.Props.Connectionkey)
 		if err != nil {
 			return err
 		}
