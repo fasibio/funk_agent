@@ -212,26 +212,29 @@ func (w *Holder) getStatsInfo(v *tracker.Tracker) *Message {
 		return nil
 	}
 
-	if w.Props.SwarmMode {
-		return &Message{
-			Time:          time.Now(),
-			Type:          MessageType_Stats,
-			Data:          []string{string(b)},
+	return &Message{
+		Time:        time.Now(),
+		Type:        MessageType_Stats,
+		Data:        []string{string(b)},
+		Attributes:  getFilledMessageAttributes(w, v),
+		SearchIndex: v.SearchIndex() + "_stats",
+	}
+
+}
+
+func getFilledMessageAttributes(holder *Holder, v *tracker.Tracker) Attributes {
+	if holder.Props.SwarmMode {
+		return Attributes{
 			Containername: v.Container.Labels["com.docker.swarm.task.name"],
 			Servicename:   v.Container.Labels["com.docker.swarm.service.name"],
 			Namespace:     v.Container.Labels["com.docker.stack.namespace"],
-			Host:          w.itSelfNamedHost,
-			SearchIndex:   v.SearchIndex() + "_stats",
+			Host:          holder.itSelfNamedHost,
 			ContainerID:   v.Container.ImageID,
 		}
 	}
-	return &Message{
-		Time:          time.Now(),
-		Type:          MessageType_Stats,
-		Data:          []string{string(b)},
+	return Attributes{
 		Containername: v.Container.Names[0],
-		Host:          w.itSelfNamedHost,
-		SearchIndex:   v.SearchIndex() + "_stats",
+		Host:          holder.itSelfNamedHost,
 		ContainerID:   v.Container.ImageID,
 	}
 
@@ -252,29 +255,13 @@ func (w *Holder) getLogs(v *tracker.Tracker) *Message {
 
 	if len(strLogs) > 0 {
 		logger.Get().Debugw("Logs from " + v.Container.Names[0])
-		if w.Props.SwarmMode {
-			return &Message{
-				Time:          time.Now(),
-				Type:          MessageType_Log,
-				Data:          strLogs,
-				Containername: v.Container.Labels["com.docker.swarm.task.name"],
-				Servicename:   v.Container.Labels["com.docker.swarm.service.name"],
-				Namespace:     v.Container.Labels["com.docker.stack.namespace"],
-				Host:          w.itSelfNamedHost,
-				SearchIndex:   v.SearchIndex() + "_logs",
-				ContainerID:   v.Container.ImageID,
-			}
-		}
 		return &Message{
-			Time:          time.Now(),
-			Type:          MessageType_Log,
-			Data:          strLogs,
-			Containername: v.Container.Names[0],
-			Host:          w.itSelfNamedHost,
-			SearchIndex:   v.SearchIndex() + "_logs",
-			ContainerID:   v.Container.ImageID,
+			Time:        time.Now(),
+			Type:        MessageType_Log,
+			Data:        strLogs,
+			SearchIndex: v.SearchIndex() + "_logs",
+			Attributes:  getFilledMessageAttributes(w, v),
 		}
-
 	} else {
 		logger.Get().Debugw("No Logs from " + v.Container.Names[0])
 		return nil

@@ -130,16 +130,15 @@ func (t *Tracker) streamStats() {
 }
 
 type Stats struct {
-	Read         string       `json:"read"`
-	Preread      string       `json:"preread"`
-	PidsStats    PidsStats    `json:"pids_stats"`
-	BlkioStats   BlkioStats   `json:"blkio_stats"`
+	Read      string    `json:"read"`
+	Preread   string    `json:"preread"`
+	PidsStats PidsStats `json:"pids_stats"`
+	// BlkioStats   BlkioStats   `json:"blkio_stats"` // logs urgly not logable out of the box necessary ?
 	NumProcs     int64        `json:"num_procs"`
 	StorageStats StorageStats `json:"storage_stats"`
 	CPUStats     CPUStats     `json:"cpu_stats"`
 	PrecpuStats  CPUStats     `json:"precpu_stats"`
 	MemoryStats  MemoryStats  `json:"memory_stats"`
-	Name         string       `json:"name"`
 	ID           string       `json:"id"`
 	Networks     Networks     `json:"networks"`
 }
