@@ -5,6 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log"
+	"regexp"
 	"strings"
 	"time"
 
@@ -30,6 +32,9 @@ func (t *Tracker) SearchIndex() string {
 }
 
 type TrackerLogs string
+type fallback struct {
+	Message string `json:"message,omitempty"`
+}
 
 func NewTracker(client *client.Client, container types.Container) *Tracker {
 	res := &Tracker{
@@ -75,19 +80,60 @@ func (t *Tracker) readLogs() {
 	})
 	if err != nil {
 		logger.Get().Errorw("Error Read containerlogs:" + err.Error())
+		return
 	}
 	defer clogs.Close()
 
 	r := bufio.NewScanner(clogs)
 	for r.Scan() {
 		te := r.Text()
-		track, err := getTrackerLog(te)
-		if err != nil {
-			logger.Get().Errorw(err.Error())
-			continue
+		var track TrackerLogs
+		var err error
+		if t.Container.Labels["funk.log.formatRegex"] != "" {
+			track, err = getTrackerLogsByFormat(t.Container.Labels["funk.log.formatRegex"], strings.Trim(strings.SplitN(te, " ", 2)[1], " "))
+		} else {
+			track, err = getTrackerLog(te)
+
 		}
+		if err != nil {
+
+			logger.Get().Errorw("Use fallback" + err.Error())
+			fallbackMessage := fallback{
+				Message: te,
+			}
+			bfallBack, _ := json.Marshal(fallbackMessage)
+			track = TrackerLogs(bfallBack)
+
+		}
+		log.Println(track)
 		t.logs = append(t.logs, track)
 	}
+}
+
+func getTrackerLogsByFormat(format, text string) (TrackerLogs, error) {
+	pattern, err := regexp.Compile(format)
+	if err != nil {
+		return TrackerLogs(text), errors.New("Error by Parsing Format: " + err.Error())
+	}
+	if !pattern.MatchString(text) {
+		return TrackerLogs(text), errors.New("Text does not match with given format. Use all as message Text:" + text + " Format:" + format)
+	}
+	body := make(map[string]interface{})
+	for _, submatches := range pattern.FindAllStringSubmatchIndex(text, -1) {
+		for _, one := range pattern.SubexpNames() {
+			if one != "" {
+				var result []byte
+				result = pattern.ExpandString(result, "$"+one, text, submatches)
+				body[one] = string(result)
+			}
+		}
+	}
+	res, err := json.Marshal(&body)
+	if err != nil {
+		return TrackerLogs(text), err
+	}
+	return TrackerLogs(res), nil
+
 }
 
 func getTrackerLog(text string) (TrackerLogs, error) {
@@ -102,19 +148,8 @@ func getTrackerLog(text string) (TrackerLogs, error) {
 	if isJSON(te) {
 		return TrackerLogs(te), nil
 	}
-	type fallback struct {
-		Message string `json:"message,omitempty"`
-	}
 
-	fallbackMessage := fallback{
-		Message: te,
-	}
-	bfallBack, err := json.Marshal(fallbackMessage)
-	var reserr error = nil
-	if err != nil {
-		reserr = errors.New("Error parsing fallback Message:" + err.Error())
-	}
-	return TrackerLogs(bfallBack), reserr
+	return TrackerLogs(te), errors.New("No JSON will use all as message")
 
 }
 
