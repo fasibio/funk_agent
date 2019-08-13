@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"log"
 	"regexp"
 	"strings"
 	"time"
@@ -91,7 +90,6 @@ func (t *Tracker) readLogs() {
 		var err error
 		if t.Container.Labels["funk.log.formatRegex"] != "" {
 			track, _ = getTrackerLogsByFormat(t.Container.Labels["funk.log.formatRegex"], strings.Trim(strings.SplitN(te, " ", 2)[1], " "))
-			log.Println("HIEHEIHEI", track)
 			te = string(track)
 		}
 		track, err = getTrackerLog(te)
@@ -105,7 +103,6 @@ func (t *Tracker) readLogs() {
 			track = TrackerLogs(bfallBack)
 
 		}
-		log.Println(track)
 		t.logs = append(t.logs, track)
 	}
 }
