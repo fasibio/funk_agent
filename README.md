@@ -53,3 +53,8 @@ The Double Backslash you need at your docker-compose file
 
 In Kibana you will see now an logentry with separate information: logs.time, logs.status, logs.request_ms, logs.domain ....
 
+
+I am sure your regex would be better than this example. 
+
+If you have build some Regex for standard logs like Apache, NGNIX, etc. I am happy to get Issue/Merge Request to add this to this Page. 
+
