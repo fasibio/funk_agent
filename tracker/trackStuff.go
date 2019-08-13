@@ -90,11 +90,11 @@ func (t *Tracker) readLogs() {
 		var track TrackerLogs
 		var err error
 		if t.Container.Labels["funk.log.formatRegex"] != "" {
-			track, err = getTrackerLogsByFormat(t.Container.Labels["funk.log.formatRegex"], strings.Trim(strings.SplitN(te, " ", 2)[1], " "))
-		} else {
-			track, err = getTrackerLog(te)
-
+			track, _ = getTrackerLogsByFormat(t.Container.Labels["funk.log.formatRegex"], strings.Trim(strings.SplitN(te, " ", 2)[1], " "))
+			log.Println("HIEHEIHEI", track)
+			te = string(track)
 		}
+		track, err = getTrackerLog(te)
 		if err != nil {
 
 			logger.Get().Errorw("Use fallback" + err.Error())
