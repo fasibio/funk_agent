@@ -236,10 +236,17 @@ func (w *Holder) getStatsInfo(v *tracker.Tracker) *Message {
 
 }
 
+func getFilledValue(value, fallback string) string {
+	if value != "" {
+		return value
+	}
+	return fallback
+}
+
 func getFilledMessageAttributes(holder *Holder, v *tracker.Tracker) Attributes {
 	if holder.Props.SwarmMode {
 		return Attributes{
-			Containername: v.Container.Labels["com.docker.swarm.task.name"],
+			Containername: getFilledValue(v.Container.Labels["com.docker.swarm.task.name"], v.Container.Names[0]),
 			Servicename:   v.Container.Labels["com.docker.swarm.service.name"],
 			Namespace:     v.Container.Labels["com.docker.stack.namespace"],
 			Host:          holder.itSelfNamedHost,
