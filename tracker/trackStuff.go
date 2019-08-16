@@ -12,6 +12,7 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	"github.com/fasibio/funk_agent/logger"
+	"go.uber.org/zap"
 )
 
 type Tracker struct {
@@ -69,6 +70,8 @@ func isJSON(s string) bool {
 var startDate time.Time = time.Now()
 
 func (t *Tracker) readLogs() {
+	logs := getLoggerWithContainerInformation(logger.Get(), &t.Container)
+
 	clogs, err := t.Client.ContainerLogs(t.Ctx, t.Container.ID, types.ContainerLogsOptions{
 		Details:    false,
 		Follow:     true,
@@ -78,7 +81,7 @@ func (t *Tracker) readLogs() {
 		Since:      startDate.Format("2006-01-02T15:04:05"),
 	})
 	if err != nil {
-		logger.Get().Errorw("Error Read containerlogs:" + err.Error())
+		logs.Errorw("Error Read containerlogs:" + err.Error())
 		return
 	}
 	defer clogs.Close()
@@ -89,13 +92,16 @@ func (t *Tracker) readLogs() {
 		var track TrackerLogs
 		var err error
 		if t.Container.Labels["funk.log.formatRegex"] != "" {
-			track, _ = getTrackerLogsByFormat(t.Container.Labels["funk.log.formatRegex"], strings.Trim(strings.SplitN(te, " ", 2)[1], " "))
+			track, err = getTrackerLogsByFormat(t.Container.Labels["funk.log.formatRegex"], strings.Trim(strings.SplitN(te, " ", 2)[1], " "))
+			if err != nil {
+				logs.Errorw(err.Error())
+			}
 			te = string(track)
 		}
 		track, err = getTrackerLog(te)
 		if err != nil {
 
-			logger.Get().Errorw("Use fallback" + err.Error())
+			logs.Errorw("Use fallback" + err.Error())
 			fallbackMessage := fallback{
 				Message: te,
 			}
@@ -166,6 +172,12 @@ func (t *Tracker) streamStats() {
 		}
 	}
 	t.stats = new(Stats)
+}
+
+func getLoggerWithContainerInformation(logs *zap.SugaredLogger, container *types.Container) *zap.SugaredLogger {
+	return logs.With(
+		"containername", container.Names[0],
+	)
 }
 
 type Stats struct {

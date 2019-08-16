@@ -233,7 +233,6 @@ func (w *Holder) getStatsInfo(v *tracker.Tracker) *Message {
 		Attributes:  getFilledMessageAttributes(w, v),
 		SearchIndex: v.SearchIndex() + "_stats",
 	}
-
 }
 
 func getFilledValue(value, fallback string) string {
