@@ -1,4 +1,6 @@
 # Funk-agent
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Ffasibio%2Ffunk_agent.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Ffasibio%2Ffunk_agent?ref=badge_shield)
+
 
 This is the Containeragent for [funk-server](https://github.com/fasibio/funk-server). 
 
@@ -58,3 +60,7 @@ I am sure your regex would be better than this example.
 
 If you have build some Regex for standard logs like Apache, NGNIX, etc. I am happy to get Issue/Merge Request to add this to this Page. 
 
+
+
+## License
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Ffasibio%2Ffunk_agent.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Ffasibio%2Ffunk_agent?ref=badge_large)
