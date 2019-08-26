@@ -24,7 +24,7 @@ func Test_getFilledMessageAttributes(t *testing.T) {
 	tests := []struct {
 		name    string
 		holder  Holder
-		tracker tracker.Tracker
+		tracker tracker.TrackElement
 		want    Attributes
 	}{
 		{
@@ -40,8 +40,8 @@ func Test_getFilledMessageAttributes(t *testing.T) {
 					SwarmMode: false,
 				},
 			},
-			tracker: tracker.Tracker{
-				Container: types.Container{
+			tracker: &TrackerMock{
+				Con: types.Container{
 					ImageID: "MockImageid",
 					Names: []string{
 						"Containername",
@@ -64,8 +64,8 @@ func Test_getFilledMessageAttributes(t *testing.T) {
 					SwarmMode: true,
 				},
 			},
-			tracker: tracker.Tracker{
-				Container: types.Container{
+			tracker: &TrackerMock{
+				Con: types.Container{
 					Labels: getSwarmModeLabels("Containername", "ServiceName", "namespace"),
 					Names: []string{
 						"Containername_not_used",
@@ -89,8 +89,8 @@ func Test_getFilledMessageAttributes(t *testing.T) {
 					SwarmMode: true,
 				},
 			},
-			tracker: tracker.Tracker{
-				Container: types.Container{
+			tracker: &TrackerMock{
+				Con: types.Container{
 					Labels: getSwarmModeLabels("", "ServiceName", "namespace"),
 					Names: []string{
 						"Containername",
@@ -102,7 +102,7 @@ func Test_getFilledMessageAttributes(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := getFilledMessageAttributes(&tt.holder, &tt.tracker); !reflect.DeepEqual(got, tt.want) {
+			if got := getFilledMessageAttributes(&tt.holder, tt.tracker); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("getFilledMessageAttributes() = %v, want %v", got, tt.want)
 			}
 		})

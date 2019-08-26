@@ -24,23 +24,23 @@ type TrackElement interface {
 }
 
 type Tracker struct {
-	Container types.Container
-	Ctx       context.Context
-	Client    *client.Client
+	container types.Container
+	ctx       context.Context
+	client    *client.Client
 	stats     *Stats
 	logs      []TrackerLogs
 }
 
 func (t *Tracker) GetContainer() types.Container {
-	return t.Container
+	return t.container
 }
 
 func (t *Tracker) SetContainer(con types.Container) {
-	t.Container = con
+	t.container = con
 }
 
 func (t *Tracker) SearchIndex() string {
-	index := t.Container.Labels["funk.searchindex"]
+	index := t.container.Labels["funk.searchindex"]
 	if index == "" {
 		return "default"
 	}
@@ -54,10 +54,10 @@ type fallback struct {
 
 func NewTracker(client *client.Client, container types.Container) *Tracker {
 	res := &Tracker{
-		Client:    client,
-		Container: container,
+		client:    client,
+		container: container,
 		stats:     new(Stats),
-		Ctx:       context.Background(),
+		ctx:       context.Background(),
 	}
 	res.runAsyncTasks()
 	return res
@@ -77,18 +77,17 @@ func (t *Tracker) runAsyncTasks() {
 	go t.readLogs()
 }
 
-func isJSON(s string) bool {
+func IsJSON(s string) bool {
 	var js map[string]interface{}
 	return json.Unmarshal([]byte(s), &js) == nil
-
 }
 
 var startDate time.Time = time.Now()
 
 func (t *Tracker) readLogs() {
-	logs := getLoggerWithContainerInformation(logger.Get(), &t.Container)
+	logs := getLoggerWithContainerInformation(logger.Get(), &t.container)
 
-	clogs, err := t.Client.ContainerLogs(t.Ctx, t.Container.ID, types.ContainerLogsOptions{
+	clogs, err := t.client.ContainerLogs(t.ctx, t.container.ID, types.ContainerLogsOptions{
 		Details:    false,
 		Follow:     true,
 		ShowStderr: true,
@@ -107,8 +106,8 @@ func (t *Tracker) readLogs() {
 		te := r.Text()
 		var track TrackerLogs
 		var err error
-		if t.Container.Labels["funk.log.formatRegex"] != "" {
-			track, err = getTrackerLogsByFormat(t.Container.Labels["funk.log.formatRegex"], strings.Trim(strings.SplitN(te, " ", 2)[1], " "))
+		if t.container.Labels["funk.log.formatRegex"] != "" {
+			track, err = getTrackerLogsByFormat(t.container.Labels["funk.log.formatRegex"], strings.Trim(strings.SplitN(te, " ", 2)[1], " "))
 			if err != nil {
 				logs.Errorw(err.Error())
 			}
@@ -157,14 +156,14 @@ func getTrackerLogsByFormat(format, text string) (TrackerLogs, error) {
 
 func getTrackerLog(text string) (TrackerLogs, error) {
 	te := text
-	if isJSON(te) {
+	if IsJSON(te) {
 		return TrackerLogs(te), nil
 	}
 	teArray := strings.SplitN(te, " ", 2)
 	if len(teArray) > 1 {
 		te = teArray[1]
 	}
-	if isJSON(te) {
+	if IsJSON(te) {
 		return TrackerLogs(te), nil
 	}
 
@@ -173,7 +172,7 @@ func getTrackerLog(text string) (TrackerLogs, error) {
 }
 
 func (t *Tracker) streamStats() {
-	cstats, err := t.Client.ContainerStats(t.Ctx, t.Container.ID, true)
+	cstats, err := t.client.ContainerStats(t.ctx, t.container.ID, true)
 
 	if err != nil {
 		logger.Get().Errorw("Error get ContainerStats:" + err.Error())

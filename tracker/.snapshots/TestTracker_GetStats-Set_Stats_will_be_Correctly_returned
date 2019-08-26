@@ -1,0 +1,59 @@
+(tracker.Stats) {
+  Read: (string) "",
+  Preread: (string) "",
+  PidsStats: (tracker.PidsStats) {
+    Current: (int64) 0
+  },
+  NumProcs: (int64) 0,
+  StorageStats: (tracker.StorageStats) {
+  },
+  CPUStats: (tracker.CPUStats) {
+    CPUUsage: (tracker.CPUUsage) {
+      TotalUsage: (int64) 0,
+      PercpuUsage: ([]int64) <nil>,
+      UsageInKernelmode: (int64) 0,
+      UsageInUsermode: (int64) 0
+    },
+    SystemCPUUsage: (int64) 0,
+    OnlineCpus: (int64) 0,
+    ThrottlingData: (tracker.ThrottlingData) {
+      Periods: (int64) 0,
+      ThrottledPeriods: (int64) 0,
+      ThrottledTime: (int64) 0
+    }
+  },
+  PrecpuStats: (tracker.CPUStats) {
+    CPUUsage: (tracker.CPUUsage) {
+      TotalUsage: (int64) 0,
+      PercpuUsage: ([]int64) <nil>,
+      UsageInKernelmode: (int64) 0,
+      UsageInUsermode: (int64) 0
+    },
+    SystemCPUUsage: (int64) 0,
+    OnlineCpus: (int64) 0,
+    ThrottlingData: (tracker.ThrottlingData) {
+      Periods: (int64) 0,
+      ThrottledPeriods: (int64) 0,
+      ThrottledTime: (int64) 0
+    }
+  },
+  MemoryStats: (tracker.MemoryStats) {
+    Usage: (int64) 0,
+    MaxUsage: (int64) 0,
+    Stats: (map[string]int64) <nil>,
+    Limit: (int64) 0
+  },
+  ID: (string) (len=8) "my Stats",
+  Networks: (tracker.Networks) {
+    Eth0: (tracker.Eth0) {
+      RxBytes: (int64) 0,
+      RxPackets: (int64) 0,
+      RxErrors: (int64) 0,
+      RxDropped: (int64) 0,
+      TxBytes: (int64) 0,
+      TxPackets: (int64) 0,
+      TxErrors: (int64) 0,
+      TxDropped: (int64) 0
+    }
+  }
+}
