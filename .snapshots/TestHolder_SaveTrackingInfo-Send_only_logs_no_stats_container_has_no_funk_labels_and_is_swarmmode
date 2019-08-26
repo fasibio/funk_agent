@@ -1,0 +1,18 @@
+([]main.Message) (len=1) {
+  (main.Message) {
+    Time: (time.Time) 1974-05-19 01:02:03.000000004 +0000 UTC,
+    Type: (main.MessageType) (len=3) "LOG",
+    Data: ([]string) (len=2) {
+      (string) "",
+      (string) (len=15) "{\"mock\": \"str\"}"
+    },
+    SearchIndex: (string) (len=14) "MockIndex_logs",
+    Attributes: (main.Attributes) {
+      Host: (string) (len=9) "test_unit",
+      Containername: (string) (len=26) "com.docker.swarm.task.name",
+      Servicename: (string) (len=29) "com.docker.swarm.service.name",
+      Namespace: (string) (len=26) "com.docker.stack.namespace",
+      ContainerID: (string) (len=18) "mockContainer-0001"
+    }
+  }
+}

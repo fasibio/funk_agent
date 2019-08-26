@@ -3,7 +3,10 @@ module github.com/fasibio/funk_agent
 go 1.12
 
 require (
+	bou.ke/monkey v1.0.1 // indirect
 	github.com/Microsoft/go-winio v0.4.12 // indirect
+	github.com/bouk/monkey v1.0.1
+	github.com/bradleyjkemp/cupaloy/v2 v2.5.0
 	github.com/docker/distribution v2.7.1+incompatible // indirect
 	github.com/docker/docker v1.13.1
 	github.com/docker/go-connections v0.4.0 // indirect

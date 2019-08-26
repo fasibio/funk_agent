@@ -15,12 +15,28 @@ import (
 	"go.uber.org/zap"
 )
 
+type TrackElement interface {
+	SearchIndex() string
+	GetStats() Stats
+	GetLogs() []TrackerLogs
+	GetContainer() types.Container
+	SetContainer(con types.Container)
+}
+
 type Tracker struct {
 	Container types.Container
 	Ctx       context.Context
 	Client    *client.Client
 	stats     *Stats
 	logs      []TrackerLogs
+}
+
+func (t *Tracker) GetContainer() types.Container {
+	return t.Container
+}
+
+func (t *Tracker) SetContainer(con types.Container) {
+	t.Container = con
 }
 
 func (t *Tracker) SearchIndex() string {

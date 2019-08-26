@@ -23,7 +23,8 @@ type Holder struct {
 	Props              Props
 	itSelfNamedHost    string
 	client             *client.Client
-	trackingContainers map[string]*tracker.Tracker
+	trackingContainers map[string]tracker.TrackElement
+	writeToServer      Serverwriter
 }
 
 type StatsLog string
@@ -125,8 +126,9 @@ func run(c *cli.Context) error {
 			LogStats:           statslog,
 			SwarmMode:          c.Bool(Clikey_Swarmmode),
 		},
+		writeToServer:      WriteToServer,
 		itSelfNamedHost:    "localhost",
-		trackingContainers: make(map[string]*tracker.Tracker),
+		trackingContainers: make(map[string]tracker.TrackElement),
 	}
 	err := holder.openSocketConn(false)
 	for err != nil {
@@ -174,7 +176,7 @@ func (w *Holder) updateTrackingContainer(containerChan chan []types.Container, m
 			for _, v := range c {
 				d, exist := w.trackingContainers[v.ID]
 				if exist {
-					d.Container = v
+					d.SetContainer(v)
 				} else {
 					w.trackingContainers[v.ID] = tracker.NewTracker(w.client, v)
 				}
@@ -184,7 +186,7 @@ func (w *Holder) updateTrackingContainer(containerChan chan []types.Container, m
 	}
 }
 
-func (w *Holder) SaveTrackingInfo(data *tracker.Tracker) {
+func (w *Holder) SaveTrackingInfo(data tracker.TrackElement) {
 	var msg []Message
 	logs := w.getLogs(data)
 	if logs != nil {
@@ -197,7 +199,7 @@ func (w *Holder) SaveTrackingInfo(data *tracker.Tracker) {
 		}
 	}
 	if len(msg) != 0 {
-		err := WriteToServer(w.streamCon, msg)
+		err := w.writeToServer(w.streamCon, msg)
 		if err != nil {
 			logger.Get().Warnw("Error by write Data to Server" + err.Error() + " try to reconnect")
 
@@ -213,9 +215,9 @@ func (w *Holder) SaveTrackingInfo(data *tracker.Tracker) {
 
 }
 
-func (w *Holder) getStatsInfo(v *tracker.Tracker) *Message {
-	if v.Container.Labels["funk.log.stats"] == "false" {
-		logger.Get().Debugw("No stats Logging for" + v.Container.Names[0])
+func (w *Holder) getStatsInfo(v tracker.TrackElement) *Message {
+	if v.GetContainer().Labels["funk.log.stats"] == "false" {
+		logger.Get().Debugw("No stats Logging for" + v.GetContainer().Names[0])
 		return nil
 	}
 	stats := v.GetStats()
@@ -242,27 +244,27 @@ func getFilledValue(value, fallback string) string {
 	return fallback
 }
 
-func getFilledMessageAttributes(holder *Holder, v *tracker.Tracker) Attributes {
+func getFilledMessageAttributes(holder *Holder, v tracker.TrackElement) Attributes {
 	if holder.Props.SwarmMode {
 		return Attributes{
-			Containername: getFilledValue(v.Container.Labels["com.docker.swarm.task.name"], v.Container.Names[0]),
-			Servicename:   v.Container.Labels["com.docker.swarm.service.name"],
-			Namespace:     v.Container.Labels["com.docker.stack.namespace"],
+			Containername: getFilledValue(v.GetContainer().Labels["com.docker.swarm.task.name"], v.GetContainer().Names[0]),
+			Servicename:   v.GetContainer().Labels["com.docker.swarm.service.name"],
+			Namespace:     v.GetContainer().Labels["com.docker.stack.namespace"],
 			Host:          holder.itSelfNamedHost,
-			ContainerID:   v.Container.ImageID,
+			ContainerID:   v.GetContainer().ImageID,
 		}
 	}
 	return Attributes{
-		Containername: v.Container.Names[0],
+		Containername: v.GetContainer().Names[0],
 		Host:          holder.itSelfNamedHost,
-		ContainerID:   v.Container.ImageID,
+		ContainerID:   v.GetContainer().ImageID,
 	}
 
 }
 
-func (w *Holder) getLogs(v *tracker.Tracker) *Message {
-	if v.Container.Labels["funk.log.logs"] == "false" {
-		logger.Get().Debugw("No logs Logging for " + v.Container.Names[0])
+func (w *Holder) getLogs(v tracker.TrackElement) *Message {
+	if v.GetContainer().Labels["funk.log.logs"] == "false" {
+		logger.Get().Debugw("No logs Logging for " + v.GetContainer().Names[0])
 		return nil
 	}
 	logs := v.GetLogs()
@@ -274,7 +276,7 @@ func (w *Holder) getLogs(v *tracker.Tracker) *Message {
 	}
 
 	if len(strLogs) > 0 {
-		logger.Get().Debugw("Logs from " + v.Container.Names[0])
+		logger.Get().Debugw("Logs from " + v.GetContainer().Names[0])
 		return &Message{
 			Time:        time.Now(),
 			Type:        MessageType_Log,
@@ -283,7 +285,7 @@ func (w *Holder) getLogs(v *tracker.Tracker) *Message {
 			Attributes:  getFilledMessageAttributes(w, v),
 		}
 	} else {
-		logger.Get().Debugw("No Logs from " + v.Container.Names[0])
+		logger.Get().Debugw("No Logs from " + v.GetContainer().Names[0])
 		return nil
 	}
 }
