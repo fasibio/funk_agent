@@ -5,15 +5,20 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"regexp"
 	"strings"
 	"time"
 
 	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/client"
 	"github.com/fasibio/funk_agent/logger"
 	"go.uber.org/zap"
 )
+
+type DockerClient interface {
+	ContainerLogs(ctx context.Context, container string, options types.ContainerLogsOptions) (io.ReadCloser, error)
+	ContainerStats(ctx context.Context, containerID string, stream bool) (types.ContainerStats, error)
+}
 
 type TrackElement interface {
 	SearchIndex() string
@@ -26,7 +31,7 @@ type TrackElement interface {
 type Tracker struct {
 	container types.Container
 	ctx       context.Context
-	client    *client.Client
+	client    DockerClient
 	stats     *Stats
 	logs      []TrackerLogs
 }
@@ -52,7 +57,7 @@ type fallback struct {
 	Message string `json:"message,omitempty"`
 }
 
-func NewTracker(client *client.Client, container types.Container) *Tracker {
+func NewTracker(client DockerClient, container types.Container) *Tracker {
 	res := &Tracker{
 		client:    client,
 		container: container,
