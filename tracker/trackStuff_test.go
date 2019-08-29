@@ -182,7 +182,7 @@ func TestNewTracker_Logs(t *testing.T) {
 		resultLogs      string
 		resultContainer string
 		container       types.Container
-		wantLogs        func(logs []TrackerLogs) bool
+		want            []TrackerLogs
 	}{
 		{
 			name:            "Check that will returns the logjson",
@@ -192,9 +192,7 @@ func TestNewTracker_Logs(t *testing.T) {
 				Labels: map[string]string{},
 				Names:  []string{"mocktest0"},
 			},
-			wantLogs: func(logs []TrackerLogs) bool {
-				return reflect.DeepEqual(logs, []TrackerLogs{`{"mock":true}`})
-			},
+			want: []TrackerLogs{`{"mock":true}`},
 		},
 		{
 			name:            "Check given a string he will return a json with field message",
@@ -204,9 +202,7 @@ func TestNewTracker_Logs(t *testing.T) {
 				Labels: map[string]string{},
 				Names:  []string{"mocktest0"},
 			},
-			wantLogs: func(logs []TrackerLogs) bool {
-				return reflect.DeepEqual(logs, []TrackerLogs{`{"message":"this is a simple textmessage"}`})
-			},
+			want: []TrackerLogs{`{"message":"this is a simple textmessage"}`},
 		},
 		{
 			name:            "container have a formatRegex and this will be parsed",
@@ -218,9 +214,7 @@ func TestNewTracker_Logs(t *testing.T) {
 				},
 				Names: []string{"mocktest0"},
 			},
-			wantLogs: func(logs []TrackerLogs) bool {
-				return reflect.DeepEqual(logs, []TrackerLogs{`{"domain":"localhost:3001","message":"/graphql","method":"POST","request_ms":"1.591596","status":"200","time":"2019-08-12T12:52:07Z"}`})
-			},
+			want: []TrackerLogs{`{"domain":"localhost:3001","message":"/graphql","method":"POST","request_ms":"1.591596","status":"200","time":"2019-08-12T12:52:07Z"}`},
 		},
 		{
 			name:            "container have a formatRegex and this will be parsed but text will not match so it will return the fallback",
@@ -232,9 +226,7 @@ func TestNewTracker_Logs(t *testing.T) {
 				},
 				Names: []string{"mocktest0"},
 			},
-			wantLogs: func(logs []TrackerLogs) bool {
-				return reflect.DeepEqual(logs, []TrackerLogs{`{"message":"i Am not parsing"}`})
-			},
+			want: []TrackerLogs{`{"message":"i Am not parsing"}`},
 		},
 		{
 			name:            "container have a formatRegex and this will be parsed but text will not match but is a json so it will return the json",
@@ -246,9 +238,7 @@ func TestNewTracker_Logs(t *testing.T) {
 				},
 				Names: []string{"mocktest0"},
 			},
-			wantLogs: func(logs []TrackerLogs) bool {
-				return reflect.DeepEqual(logs, []TrackerLogs{`{"mock":true}`})
-			},
+			want: []TrackerLogs{`{"mock":true}`},
 		},
 	}
 
@@ -260,8 +250,10 @@ func TestNewTracker_Logs(t *testing.T) {
 			}
 			tracker := NewTracker(&mockClient, tt.container)
 			time.Sleep(1 * time.Millisecond)
-			if !tt.wantLogs(tracker.GetLogs()) {
-				t.Error("Logs are different to the wanted")
+			logs := tracker.GetLogs()
+			if !reflect.DeepEqual(logs, tt.want) {
+				t.Errorf("Logs are different got %v want %v", logs, tt.want)
+
 			}
 		})
 	}
