@@ -249,7 +249,7 @@ func TestNewTracker_Logs(t *testing.T) {
 				ResultContainerStats: tt.resultContainer,
 			}
 			tracker := NewTracker(&mockClient, tt.container)
-			time.Sleep(1 * time.Millisecond)
+			time.Sleep(10 * time.Millisecond)
 			logs := tracker.GetLogs()
 			if !reflect.DeepEqual(logs, tt.want) {
 				t.Errorf("Logs are different got %v want %v", logs, tt.want)
