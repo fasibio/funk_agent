@@ -77,7 +77,7 @@
      - dockerfasibio
    script: 
      - docker login -u ${dockerhubuser} -p ${dockerhubpassword}
-     - ocker push ${IMAGE_NAME}:${CI_COMMIT_REF_NAME}
+     - docker push ${IMAGE_NAME}:${CI_COMMIT_REF_NAME}
 
 
  buildImageMaster: 
