@@ -1,12 +1,22 @@
+ variables: 
+   IMAGE_NAME: fasibio/funk_agent
+   SONAR_NAME: fasibio_funk_agent_
+   SONAR_HOST: https://sonar.server2.fasibio.de
+
+ 
  test:
   stage: test
   only:
+    - /^([0-9]{0,3})\.([0-9]{0,3})\.([0-9]{0,3})$/
+    - /^rc_([0-9]{0,3})\.([0-9]{0,3})\.([0-9]{0,3}).*/
     - master
   tags: 
     - dockerfasibio
   image: golang:1.12.8
   script:
    - go test ./... -mod=vendor -short -coverprofile=cov.out
+   - go tool cover -func cov.out  
+  coverage: /^total:\t+\(statements\)\t+(\d+\.\d+)%/
   artifacts: 
    paths: 
      - ./cov.out
@@ -15,18 +25,23 @@
     image: ciricihq/gitlab-sonar-scanner
     stage: sonarqube
     script:
-      - sonar-scanner -Dsonar.projectKey=fasibio_funk_agent_$CI_COMMIT_REF_NAME -Dsonar.sources=. -Dsonar.host.url=https://sonar.server2.fasibio.de -Dsonar.login=$sonarqubelogin
+      - sonar-scanner -Dsonar.projectKey=${SONAR_NAME}${CI_COMMIT_REF_NAME} -Dsonar.sources=. -Dsonar.host.url=${SONAR_HOST} -Dsonar.login=$sonarqubelogin
     only: 
+      - /^([0-9]{0,3})\.([0-9]{0,3})\.([0-9]{0,3})$/
+      - /^rc_([0-9]{0,3})\.([0-9]{0,3})\.([0-9]{0,3}).*/
       - master
     tags:
       - dockerfasibio
     artifacts: 
       paths: 
         - ./cov.out
+
  buildBin: 
     stage: buildBin
     only:
-     - master
+      - /^([0-9]{0,3})\.([0-9]{0,3})\.([0-9]{0,3})$/
+      - /^rc_([0-9]{0,3})\.([0-9]{0,3})\.([0-9]{0,3}).*/
+      - master
     tags:
       - dockerfasibio
     image: golang:1.12.8-alpine3.9
@@ -36,10 +51,13 @@
     cache:
       paths:
         - funk_agent
- buildImage: 
+
+
+ buildImageTag: 
     stage: buildImage
     only:
-     - master
+      - /^([0-9]{0,3})\.([0-9]{0,3})\.([0-9]{0,3})$/
+      - /^rc_([0-9]{0,3})\.([0-9]{0,3})\.([0-9]{0,3}).*/
     tags:
       - dockerfasibio
     image: docker
@@ -47,8 +65,35 @@
       paths:
         - funk_agent
     script: 
-      - docker build --build-arg buildNumber=${CI_PIPELINE_IID} -t fasibio/funk_agent:${CI_PIPELINE_IID} .
- publish: 
+     - docker build --build-arg buildNumber=${CI_PIPELINE_IID} -t ${IMAGE_NAME}:${CI_COMMIT_REF_NAME} .
+
+ publishTag: 
+   stage: publish
+   image: docker
+   only:
+     - /^([0-9]{0,3})\.([0-9]{0,3})\.([0-9]{0,3})$/
+     - /^rc_([0-9]{0,3})\.([0-9]{0,3})\.([0-9]{0,3}).*/
+   tags:
+     - dockerfasibio
+   script: 
+     - docker login -u ${dockerhubuser} -p ${dockerhubpassword}
+     - ocker push ${IMAGE_NAME}:${CI_COMMIT_REF_NAME}
+
+
+ buildImageMaster: 
+    stage: buildImage
+    only:
+      - master
+    tags:
+      - dockerfasibio
+    image: docker
+    cache:
+      paths:
+        - funk_agent
+    script: 
+     - docker build --build-arg buildNumber=${CI_PIPELINE_IID} -t ${IMAGE_NAME}:${CI_COMMIT_REF_NAME} .
+
+ publishMaster: 
    stage: publish
    image: docker
    only:
@@ -57,7 +102,7 @@
      - dockerfasibio
    script: 
      - docker login -u ${dockerhubuser} -p ${dockerhubpassword}
-     - docker push fasibio/funk_agent:${CI_PIPELINE_IID}
+     - ocker push ${IMAGE_NAME}:${CI_COMMIT_REF_NAME}
 
 
  stages:
