@@ -102,7 +102,7 @@
      - dockerfasibio
    script: 
      - docker login -u ${dockerhubuser} -p ${dockerhubpassword}
-     - ocker push ${IMAGE_NAME}:latest
+     - docker push ${IMAGE_NAME}:latest
 
 
  stages:
