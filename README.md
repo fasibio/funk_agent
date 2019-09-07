@@ -4,7 +4,7 @@ This is the Containeragent for [funk-server](https://github.com/fasibio/funk-ser
 
 If you don´t know what funk is please read [here](https://github.com/fasibio/funk-server) first. 
 
-[![pipeline status](https://gitlab.com/fasibio/funk_agent/badges/master/pipeline.svg)](https://gitlab.com/fasibio/funk_agent/commits/master) [![coverage report](https://gitlab.com/fasibio/funk_agent/badges/master/coverage.svg)](https://gitlab.com/fasibio/funk_agent/commits/master)
+[![pipeline status](https://gitlab.com/fasibio/funk_agent/badges/master/pipeline.svg)](https://gitlab.com/fasibio/funk_agent/commits/master) [![coverage report](https://gitlab.com/fasibio/funk_agent/badges/master/coverage.svg)](https://sonar.server2.fasibio.de/dashboard?id=fasibio_funk_agent_master)
 
 
 
