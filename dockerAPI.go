@@ -4,11 +4,18 @@ import (
 	"context"
 
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/events"
 	"github.com/docker/docker/client"
 	"github.com/fasibio/funk_agent/logger"
 )
 
-func getTrackingContainer(cli *client.Client, ctx context.Context) ([]types.Container, error) {
+type DockerClient interface {
+	ContainerList(ctx context.Context, options types.ContainerListOptions) ([]types.Container, error)
+	Info(ctx context.Context) (types.Info, error)
+	Events(ctx context.Context, options types.EventsOptions) (<-chan events.Message, <-chan error)
+}
+
+func getTrackingContainer(cli DockerClient, ctx context.Context) ([]types.Container, error) {
 	c, err := cli.ContainerList(ctx, types.ContainerListOptions{All: false})
 
 	if err != nil {
@@ -51,17 +58,19 @@ func StartListeningForContainer(ctx context.Context, trackingContainer chan []ty
 		}
 	}()
 
-	go func() {
-		for m := range msg {
-			if m.Type == "container" {
-				res, err := getTrackingContainer(cli, ctx)
-				if err != nil {
-					logger.Get().Errorw("Error by getTrackingContainer: " + err.Error())
-					continue
-				}
-				trackingContainer <- res
-			}
-		}
-	}()
+	go readMessages(ctx, cli, msg, trackingContainer)
 	return cli, &info, nil
+}
+
+func readMessages(ctx context.Context, cli DockerClient, msg <-chan events.Message, trackingContainer chan []types.Container) {
+	for m := range msg {
+		if m.Type == "container" {
+			res, err := getTrackingContainer(cli, ctx)
+			if err != nil {
+				logger.Get().Errorw("Error by getTrackingContainer: " + err.Error())
+				continue
+			}
+			trackingContainer <- res
+		}
+	}
 }
