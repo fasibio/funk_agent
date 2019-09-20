@@ -9,13 +9,14 @@ import (
 	"github.com/fasibio/funk_agent/logger"
 )
 
+// DockerClient represent all used methods from docker client
 type DockerClient interface {
 	ContainerList(ctx context.Context, options types.ContainerListOptions) ([]types.Container, error)
 	Info(ctx context.Context) (types.Info, error)
 	Events(ctx context.Context, options types.EventsOptions) (<-chan events.Message, <-chan error)
 }
 
-func getTrackingContainer(cli DockerClient, ctx context.Context) ([]types.Container, error) {
+func getTrackingContainer(ctx context.Context, cli DockerClient) ([]types.Container, error) {
 	c, err := cli.ContainerList(ctx, types.ContainerListOptions{All: false})
 
 	if err != nil {
@@ -33,6 +34,7 @@ func getTrackingContainer(cli DockerClient, ctx context.Context) ([]types.Contai
 	return res, nil
 }
 
+// StartListeningForContainer start the dockercontainerwatcher in an own goroutine. It will returns the docker client and metainfos
 func StartListeningForContainer(ctx context.Context, trackingContainer chan []types.Container) (*client.Client, *types.Info, error) {
 
 	cli, err := client.NewEnvClient()
@@ -40,7 +42,7 @@ func StartListeningForContainer(ctx context.Context, trackingContainer chan []ty
 		return nil, nil, err
 	}
 
-	res, err := getTrackingContainer(cli, ctx)
+	res, err := getTrackingContainer(ctx, cli)
 	if err != nil {
 		logger.Get().Errorw("Error by getTrackingContainer: " + err.Error())
 	} else {
@@ -65,7 +67,7 @@ func StartListeningForContainer(ctx context.Context, trackingContainer chan []ty
 func readMessages(ctx context.Context, cli DockerClient, msg <-chan events.Message, trackingContainer chan []types.Container) {
 	for m := range msg {
 		if m.Type == "container" {
-			res, err := getTrackingContainer(cli, ctx)
+			res, err := getTrackingContainer(ctx, cli)
 			if err != nil {
 				logger.Get().Errorw("Error by getTrackingContainer: " + err.Error())
 				continue

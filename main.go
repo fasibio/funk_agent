@@ -18,6 +18,7 @@ import (
 	"github.com/urfave/cli"
 )
 
+// Holder hold information of all needed Information after startup
 type Holder struct {
 	streamCon          *websocket.Conn
 	Props              Props
@@ -27,10 +28,11 @@ type Holder struct {
 	writeToServer      Serverwriter
 }
 
+// StatsLog is a param the type can check if it is set to the right value
 type StatsLog string
 
-// isValidate Check current value is a valid value
-func (s StatsLog) isValidate() bool {
+// IsValidate Check current value is a valid value
+func (s StatsLog) IsValidate() bool {
 	switch s {
 	case StatsLogAll:
 		return true
@@ -44,13 +46,17 @@ func (s StatsLog) isValidate() bool {
 }
 
 const (
-	StatsLogAll       StatsLog = "all"
+	// StatsLogAll log all statsinfo without cumulate
+	StatsLogAll StatsLog = "all"
+	// StatsLogCumulated log only cumulate information
 	StatsLogCumulated StatsLog = "cumulated"
-	StatsLogNo        StatsLog = "no"
+	// StatsLogNo do not log stats info
+	StatsLogNo StatsLog = "no"
 )
 
+// Props hold all cli given information
 type Props struct {
-	FunkServerUrl      string
+	funkServerURL      string
 	InsecureSkipVerify bool
 	Connectionkey      string
 	LogStats           StatsLog
@@ -58,12 +64,18 @@ type Props struct {
 }
 
 const (
-	Clikey_InsecureSkipVerify string = "insecureSkipVerify"
-	Clikey_Funkserver         string = "funkserver"
-	Clikey_Swarmmode          string = "swarmmode"
-	Clikey_Connectionkey      string = "connectionkey"
-	Clikey_Logstats           string = "logstats"
-	Clikey_Loglevel           string = "loglevel"
+	// ClikeyInsecureSkipVerify see description in main methode
+	ClikeyInsecureSkipVerify string = "insecureSkipVerify"
+	// ClikeyFunkserver see description in main methode
+	ClikeyFunkserver string = "funkserver"
+	// ClikeySwarmmode see description in main methode
+	ClikeySwarmmode string = "swarmmode"
+	// ClikeyConnectionkey see description in main methode
+	ClikeyConnectionkey string = "connectionkey"
+	// ClikeyLogstats see description in main methode
+	ClikeyLogstats string = "logstats"
+	// ClikeyLoglevel see description in main methode
+	ClikeyLoglevel string = "loglevel"
 )
 
 func main() {
@@ -72,35 +84,35 @@ func main() {
 	app.Action = run
 	app.Flags = []cli.Flag{
 		cli.BoolFlag{
-			Name:   Clikey_InsecureSkipVerify,
+			Name:   ClikeyInsecureSkipVerify,
 			EnvVar: "INSECURE_SKIP_VERIFY",
 			Usage:  "Allow insecure serverconnections",
 		},
 		cli.StringFlag{
-			Name:   Clikey_Funkserver,
+			Name:   ClikeyFunkserver,
 			EnvVar: "FUNK_SERVER",
 			Value:  "ws://localhost:3000",
 			Usage:  "the url of the funk_server",
 		},
 		cli.BoolFlag{
-			Name:   Clikey_Swarmmode,
+			Name:   ClikeySwarmmode,
 			EnvVar: "SWARM_MODE",
 			Usage:  "Set this field if the agent runs on a swarm cluster host to optimize the outputs of metadata",
 		},
 		cli.StringFlag{
-			Name:   Clikey_Connectionkey,
+			Name:   ClikeyConnectionkey,
 			EnvVar: "CONNECTION_KEY",
 			Value:  "changeMe04cf242924f6b5f96",
 			Usage:  "The connectionkey given to the funk-server to connect",
 		},
 		cli.StringFlag{
-			Name:   Clikey_Logstats,
+			Name:   ClikeyLogstats,
 			EnvVar: "LOG_STATS",
 			Value:  "all",
 			Usage:  "Log the statsinfo three values allowed all, cumulated (not supported now), no",
 		},
 		cli.StringFlag{
-			Name:   Clikey_Loglevel,
+			Name:   ClikeyLoglevel,
 			EnvVar: "LOG_LEVEL",
 			Value:  "info",
 			Usage:  "Log the statsinfo three values allowed all, cumulated (not supported now), no",
@@ -112,19 +124,19 @@ func main() {
 }
 
 func run(c *cli.Context) error {
-	logger.Initialize(c.String(Clikey_Loglevel))
-	statslog := StatsLog(c.String(Clikey_Logstats))
-	if !statslog.isValidate() {
-		return fmt.Errorf("logstats has no valid Parameter" + c.String(Clikey_Logstats))
+	logger.Initialize(c.String(ClikeyLoglevel))
+	statslog := StatsLog(c.String(ClikeyLogstats))
+	if !statslog.IsValidate() {
+		return fmt.Errorf("logstats has no valid Parameter %v", statslog)
 	}
 
 	holder := Holder{
 		Props: Props{
-			FunkServerUrl:      c.String(Clikey_Funkserver),
-			InsecureSkipVerify: c.Bool(Clikey_InsecureSkipVerify),
-			Connectionkey:      c.String(Clikey_Connectionkey),
+			funkServerURL:      c.String(ClikeyFunkserver),
+			InsecureSkipVerify: c.Bool(ClikeyInsecureSkipVerify),
+			Connectionkey:      c.String(ClikeyConnectionkey),
 			LogStats:           statslog,
-			SwarmMode:          c.Bool(Clikey_Swarmmode),
+			SwarmMode:          c.Bool(ClikeySwarmmode),
 		},
 		writeToServer:      WriteToServer,
 		itSelfNamedHost:    "localhost",
@@ -186,6 +198,7 @@ func (w *Holder) updateTrackingContainer(containerChan chan []types.Container, m
 	}
 }
 
+// SaveTrackingInfo collect all logs and statsinfo and send this to the server
 func (w *Holder) SaveTrackingInfo(data tracker.TrackElement) {
 	var msg []Message
 	logs := w.getLogs(data)
@@ -230,7 +243,7 @@ func (w *Holder) getStatsInfo(v tracker.TrackElement) *Message {
 
 	return &Message{
 		Time:        time.Now(),
-		Type:        MessageType_Stats,
+		Type:        MessageTypeStats,
 		Data:        []string{string(b)},
 		Attributes:  getFilledMessageAttributes(w, v),
 		SearchIndex: v.SearchIndex() + "_stats",
@@ -279,15 +292,15 @@ func (w *Holder) getLogs(v tracker.TrackElement) *Message {
 		logger.Get().Debugw("Logs from " + v.GetContainer().Names[0])
 		return &Message{
 			Time:        time.Now(),
-			Type:        MessageType_Log,
+			Type:        MessageTypeLog,
 			Data:        strLogs,
 			SearchIndex: v.SearchIndex() + "_logs",
 			Attributes:  getFilledMessageAttributes(w, v),
 		}
-	} else {
-		logger.Get().Debugw("No Logs from " + v.GetContainer().Names[0])
-		return nil
 	}
+	logger.Get().Debugw("No Logs from " + v.GetContainer().Names[0])
+	return nil
+
 }
 
 func openSocketConnection(url string, connectionString string) (*websocket.Conn, error) {
@@ -305,13 +318,13 @@ func openSocketConnection(url string, connectionString string) (*websocket.Conn,
 
 }
 
-func (h *Holder) openSocketConn(force bool) error {
-	if h.streamCon == nil || force {
-		d, err := openSocketConnection(h.Props.FunkServerUrl+"/data/subscribe", h.Props.Connectionkey)
+func (w *Holder) openSocketConn(force bool) error {
+	if w.streamCon == nil || force {
+		d, err := openSocketConnection(w.Props.funkServerURL+"/data/subscribe", w.Props.Connectionkey)
 		if err != nil {
 			return err
 		}
-		h.streamCon = d
+		w.streamCon = d
 		// go h.handleInterrupt(&done)
 		// go h.checkConnAndPoll(&conn, &done)
 	}
