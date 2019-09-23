@@ -185,7 +185,6 @@ func TestNewTracker_Logs(t *testing.T) {
 		want            []TrackerLogs
 	}{
 		{
-			name:            "Check that will returns the logjson",
 			resultLogs:      `{"mock":true}`,
 			resultContainer: `{"mock":true}`,
 			container: types.Container{

@@ -13,6 +13,7 @@
       Servicename: (string) "",
       Namespace: (string) "",
       ContainerID: (string) (len=18) "mockContainer-0001"
-    }
+    },
+    StaticContent: (string) (len=2) "{}"
   }
 }

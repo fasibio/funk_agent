@@ -13,7 +13,8 @@
       Servicename: (string) (len=29) "com.docker.swarm.service.name",
       Namespace: (string) (len=26) "com.docker.stack.namespace",
       ContainerID: (string) (len=18) "mockContainer-0001"
-    }
+    },
+    StaticContent: (string) (len=2) "{}"
   },
   (main.Message) {
     Time: (time.Time) 1974-05-19 01:02:03.000000004 +0000 UTC,
@@ -28,6 +29,7 @@
       Servicename: (string) (len=29) "com.docker.swarm.service.name",
       Namespace: (string) (len=26) "com.docker.stack.namespace",
       ContainerID: (string) (len=18) "mockContainer-0001"
-    }
+    },
+    StaticContent: (string) (len=2) "{}"
   }
 }
