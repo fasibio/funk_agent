@@ -39,6 +39,7 @@ funk.log.staticcontent = json string => static information who whants to send fo
 
 funk.searchindex => the eleaticsearch index to log. It will generate a index for log and for stats info.  if empty it will use default_(logs|stats)
 
+funk.log.geodatafromip => is the path at log to the ipaddress where geodata will be inject => something like this .RequestAddr (at the moment only work with flat data on root level)
 
 funk.log.formatRegex => funk logs json out of the box. If your logs have a format other than json (the complete line will be logged to field message) and you want to separate it, you can give the format by regex and decelerate submatches. 
 
@@ -63,3 +64,7 @@ I am sure your regex would be better than this example.
 
 If you have build some Regex for standard logs like Apache, NGNIX, etc. I am happy to get Issue/Merge Request to add this to this Page. 
 
+## Dependencies
+
+If you enable the flag enableGeoIPInject then this product includes GeoLite2 data created by MaxMind, available from
+[https://www.maxmind.com](https://www.maxmind.com).

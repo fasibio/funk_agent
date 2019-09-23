@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"sync"
@@ -26,6 +27,7 @@ type Holder struct {
 	client             *client.Client
 	trackingContainers map[string]tracker.TrackElement
 	writeToServer      Serverwriter
+	GeoReader          GeoReader
 }
 
 // StatsLog is a param the type can check if it is set to the right value
@@ -61,6 +63,7 @@ type Props struct {
 	Connectionkey      string
 	LogStats           StatsLog
 	SwarmMode          bool
+	EnableGeoIpReader  bool
 }
 
 const (
@@ -76,6 +79,8 @@ const (
 	ClikeyLogstats string = "logstats"
 	// ClikeyLoglevel see description in main methode
 	ClikeyLoglevel string = "loglevel"
+	// EnableGeoIPInject allows to get an location by ip address. This will download a database from https://www.maxmind.com
+	EnableGeoIPInject string = "enableGeoIPInject"
 )
 
 func main() {
@@ -117,6 +122,11 @@ func main() {
 			Value:  "info",
 			Usage:  "debug, info, warn, error ",
 		},
+		cli.BoolFlag{
+			Name:   EnableGeoIPInject,
+			EnvVar: "ENABLE_GEO_IP_INJECT",
+			Usage:  "allows to get an geo location by ip address. This will download a database from https://www.maxmind.com",
+		},
 	}
 	if err := app.Run(os.Args); err != nil {
 		logger.Get().Fatalw("Global error: " + err.Error())
@@ -126,10 +136,16 @@ func main() {
 func run(c *cli.Context) error {
 	logger.Initialize(c.String(ClikeyLoglevel))
 	statslog := StatsLog(c.String(ClikeyLogstats))
+
 	if !statslog.IsValidate() {
 		return fmt.Errorf("logstats has no valid Parameter %v", statslog)
 	}
 
+	enableGeoIPInject := c.Bool(EnableGeoIPInject)
+	var georeader GeoReader
+	if enableGeoIPInject {
+		georeader = InitGeoIP()
+	}
 	holder := Holder{
 		Props: Props{
 			funkServerURL:      c.String(ClikeyFunkserver),
@@ -137,7 +153,9 @@ func run(c *cli.Context) error {
 			Connectionkey:      c.String(ClikeyConnectionkey),
 			LogStats:           statslog,
 			SwarmMode:          c.Bool(ClikeySwarmmode),
+			EnableGeoIpReader:  enableGeoIPInject,
 		},
+		GeoReader:          georeader,
 		writeToServer:      WriteToServer,
 		itSelfNamedHost:    "localhost",
 		trackingContainers: make(map[string]tracker.TrackElement),
@@ -322,7 +340,40 @@ func (w *Holder) getLogs(v tracker.TrackElement) *Message {
 	var strLogs []string
 
 	for _, value := range logs {
-		strLogs = append(strLogs, string(value))
+		if w.Props.EnableGeoIpReader && v.GetContainer().Labels["funk.log.geodatafromip"] != "" {
+			keyword := v.GetContainer().Labels["funk.log.geodatafromip"]
+			logger.Get().Debug("All param set to get geodata from this container")
+			var valueobj interface{}
+			json.Unmarshal([]byte(value), &valueobj)
+			values := valueobj.(map[string]interface{})
+			ip := values[keyword[1:]]
+			geodata, err := w.GeoReader.GetGeoDataByIP(ip.(string))
+			if err != nil {
+				logger.Get().Errorw("error by get geodata from ip" + err.Error())
+			}
+
+			type location struct {
+				Lon float64 `json:"lon,omitempty"`
+				Lat float64 `json:"lat,omitempty"`
+			}
+
+			values["geoip.location"] = location{
+				Lon: geodata.Location.Longitude,
+				Lat: geodata.Location.Latitude,
+			}
+			values["geoip.location_timezone"] = geodata.Location.TimeZone
+			values["geoip.city_name"] = geodata.City.Names["en"]
+			values["geoip.postal_code"] = geodata.Postal.Code
+
+			geoinjectdata, err := json.Marshal(values)
+			if err != nil {
+				logger.Get().Error(err)
+			}
+			strLogs = append(strLogs, string(geoinjectdata))
+			log.Println(geodata)
+		} else {
+			strLogs = append(strLogs, string(value))
+		}
 	}
 
 	if len(strLogs) > 0 {
