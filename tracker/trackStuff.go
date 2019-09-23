@@ -200,6 +200,41 @@ func getLoggerWithContainerInformation(logs *zap.SugaredLogger, container *types
 	)
 }
 
+func (v *Stats) calculateCPUPercentUnix() float64 {
+	var (
+		cpuPercent = 0.0
+		// calculate the change for the cpu usage of the container in between readings
+		cpuDelta = float64(v.CPUStats.CPUUsage.TotalUsage) - float64(v.PrecpuStats.CPUUsage.TotalUsage)
+		// calculate the change for the entire system between readings
+		systemDelta = float64(v.CPUStats.SystemCPUUsage) - float64(v.PrecpuStats.SystemCPUUsage)
+	)
+
+	if systemDelta > 0.0 && cpuDelta > 0.0 {
+		cpuPercent = (cpuDelta / systemDelta) * float64(len(v.CPUStats.CPUUsage.PercpuUsage)) * 100.0
+	}
+	return cpuPercent
+}
+
+func CumulateStatsInfo(stats Stats) CumulateStats {
+	return CumulateStats{
+		RamUsageMb:      float64(stats.MemoryStats.Usage) / 1000000,
+		RamUsagePercent: (float64(stats.MemoryStats.Usage) / float64(stats.MemoryStats.Limit)) * 100,
+		CPUUsagePercent: stats.calculateCPUPercentUnix(),
+		RamLimitMb:      float64(stats.MemoryStats.Limit) / 1000000,
+		NetIOReceiveMb:  float64(stats.Networks.Eth0.RxBytes) / 1000000,
+		NetIOTransmitMb: float64(stats.Networks.Eth0.TxBytes) / 1000000,
+	}
+}
+
+type CumulateStats struct {
+	CPUUsagePercent float64 `json:"cpu_usage_percent,omitempty"`
+	RamUsagePercent float64 `json:"ram_usage_percent,omitempty"`
+	RamUsageMb      float64 `json:"ram_usage_mb,omitempty"`
+	RamLimitMb      float64 `json:"ram_limit_mb,omitempty"`
+	NetIOReceiveMb  float64 `json:"net_io_usage_mb,omitempty"`
+	NetIOTransmitMb float64 `json:"net_io_transmit_mb,omitempty"`
+}
+
 type Stats struct {
 	Read      string    `json:"read"`
 	Preread   string    `json:"preread"`

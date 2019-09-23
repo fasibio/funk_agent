@@ -249,11 +249,74 @@ func TestNewTracker_Logs(t *testing.T) {
 				ResultContainerStats: tt.resultContainer,
 			}
 			tracker := NewTracker(&mockClient, tt.container)
-			time.Sleep(20 * time.Millisecond)
+			time.Sleep(60 * time.Millisecond)
 			logs := tracker.GetLogs()
 			if !reflect.DeepEqual(logs, tt.want) {
 				t.Errorf("Logs are different got %v want %v", logs, tt.want)
 
+			}
+		})
+	}
+}
+
+func TestCumulateStatsInfo(t *testing.T) {
+	type args struct {
+	}
+	tests := []struct {
+		name       string
+		inputstats Stats
+		want       CumulateStats
+	}{
+		{
+			name: "Test that inputvalue will be cumlate correctly",
+			inputstats: Stats{
+				Networks: Networks{
+					Eth0: Eth0{
+						RxBytes: 12527088,
+						TxBytes: 9631887,
+					},
+				},
+				MemoryStats: MemoryStats{
+					Usage: 16007584,
+					Limit: 200000000,
+				},
+				CPUStats: CPUStats{
+					CPUUsage: CPUUsage{
+						TotalUsage: 57557425132,
+						PercpuUsage: []int64{
+							7680017807,
+							6388490572,
+							7925196812,
+							7429155576,
+							5931563455,
+							7045249777,
+							7363539881,
+							7794211252,
+						},
+					},
+					SystemCPUUsage: 295939410000000,
+				},
+				PrecpuStats: CPUStats{
+					CPUUsage: CPUUsage{
+						TotalUsage: 57555263311,
+					},
+					SystemCPUUsage: 295931040000000,
+				},
+			},
+			want: CumulateStats{
+				RamUsageMb:      16.007584,
+				RamUsagePercent: 8.003792,
+				CPUUsagePercent: 0.20662566308243727,
+				RamLimitMb:      200,
+				NetIOReceiveMb:  12.527088,
+				NetIOTransmitMb: 9.631887,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := CumulateStatsInfo(tt.inputstats); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("CumulateStatsInfo() = %v, want %v", got, tt.want)
 			}
 		})
 	}

@@ -108,14 +108,14 @@ func main() {
 		cli.StringFlag{
 			Name:   ClikeyLogstats,
 			EnvVar: "LOG_STATS",
-			Value:  "all",
-			Usage:  "Log the statsinfo three values allowed all, cumulated (not supported now), no",
+			Value:  "cumulated",
+			Usage:  "Log the statsinfo three values allowed all, cumulated, no",
 		},
 		cli.StringFlag{
 			Name:   ClikeyLoglevel,
 			EnvVar: "LOG_LEVEL",
 			Value:  "info",
-			Usage:  "Log the statsinfo three values allowed all, cumulated (not supported now), no",
+			Usage:  "debug, info, warn, error ",
 		},
 	}
 	if err := app.Run(os.Args); err != nil {
@@ -205,7 +205,7 @@ func (w *Holder) SaveTrackingInfo(data tracker.TrackElement) {
 	if logs != nil {
 		msg = append(msg, *logs)
 	}
-	if w.Props.LogStats == StatsLogAll {
+	if w.Props.LogStats != StatsLogNo {
 		stats := w.getStatsInfo(data)
 		if stats != nil {
 			msg = append(msg, *stats)
@@ -223,9 +223,7 @@ func (w *Holder) SaveTrackingInfo(data tracker.TrackElement) {
 				logger.Get().Infow("Connected to Funk-Server")
 			}
 		}
-
 	}
-
 }
 
 func (w *Holder) getStatsInfo(v tracker.TrackElement) *Message {
@@ -234,6 +232,22 @@ func (w *Holder) getStatsInfo(v tracker.TrackElement) *Message {
 		return nil
 	}
 	stats := v.GetStats()
+	var b []byte
+	if w.Props.LogStats == StatsLogCumulated {
+		b, err := json.Marshal(tracker.CumulateStatsInfo(stats))
+		if err != nil {
+			logger.Get().Errorw("Error by Marshal stats:" + err.Error())
+			return nil
+		}
+
+		return &Message{
+			Time:        time.Now(),
+			Type:        MessageTypeStats,
+			Data:        []string{string(b)},
+			Attributes:  getFilledMessageAttributes(w, v),
+			SearchIndex: v.SearchIndex() + "_stats_cumulated",
+		}
+	}
 
 	b, err := json.Marshal(stats)
 	if err != nil {
