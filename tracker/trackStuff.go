@@ -26,6 +26,7 @@ type TrackElement interface {
 	GetLogs() []TrackerLogs
 	GetContainer() types.Container
 	SetContainer(con types.Container)
+	GetStaticContent() string
 }
 
 type Tracker struct {
@@ -131,6 +132,10 @@ func (t *Tracker) readLogs() {
 		}
 		t.logs = append(t.logs, track)
 	}
+}
+
+func (t *Tracker) GetStaticContent() string {
+	return t.container.Labels["funk.log.staticcontent"]
 }
 
 func getTrackerLogsByFormat(format, text string) (TrackerLogs, error) {

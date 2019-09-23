@@ -35,6 +35,8 @@ funk.log.stats = false | true (default)  => Log Stats info for this Container ?
 
 funk.log.logs = false | true (default ) => Log Stdout/Stderr for this Container ? 
 
+funk.log.staticcontent = json string => static information who whants to send for this container
+
 funk.searchindex => the eleaticsearch index to log. It will generate a index for log and for stats info.  if empty it will use default_(logs|stats)
 
 

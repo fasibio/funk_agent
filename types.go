@@ -15,11 +15,12 @@ const (
 // Message is the Lawobject between agent and server
 // Its the JSON which will be send to server
 type Message struct {
-	Time        time.Time   `json:"time,omitempty"`        // Time is the explizit time where this dataset is created
-	Type        MessageType `json:"type,omitempty"`        // Type is this a LOG or a STATS dataset
-	Data        []string    `json:"data,omitempty"`        // Data is an array of seralized JSON. Here are the Jsonobjects from logging Container
-	SearchIndex string      `json:"searchindex,omitempty"` // SearchIndex is the Elasticsearch index to save the given dataset
-	Attributes  Attributes  `json:"attr,omitempty"`        // Attributes are Metainformation
+	Time          time.Time   `json:"time,omitempty"`        // Time is the explizit time where this dataset is created
+	Type          MessageType `json:"type,omitempty"`        // Type is this a LOG or a STATS dataset
+	Data          []string    `json:"data,omitempty"`        // Data is an array of seralized JSON. Here are the Jsonobjects from logging Container
+	SearchIndex   string      `json:"searchindex,omitempty"` // SearchIndex is the Elasticsearch index to save the given dataset
+	Attributes    Attributes  `json:"attr,omitempty"`        // Attributes are Metainformation
+	StaticContent string      `json:"static_content,omitempty"`
 }
 
 // Attributes are the Metainformation

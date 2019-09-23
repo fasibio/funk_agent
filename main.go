@@ -226,12 +226,33 @@ func (w *Holder) SaveTrackingInfo(data tracker.TrackElement) {
 	}
 }
 
+func getStaticContent(v tracker.TrackElement) string {
+	staticcontent := v.GetStaticContent()
+	if staticcontent == "" {
+		staticcontent = "{}"
+	}
+	var staticcontentobj interface{}
+	err := json.Unmarshal([]byte(staticcontent), &staticcontentobj)
+	if err != nil {
+		logger.Get().Error(err)
+		return "{}"
+	}
+
+	staticcontentstr, err := json.Marshal(staticcontentobj)
+	if err != nil {
+		logger.Get().Error(err)
+		return "{}"
+	}
+	return string(staticcontentstr)
+}
+
 func (w *Holder) getStatsInfo(v tracker.TrackElement) *Message {
 	if v.GetContainer().Labels["funk.log.stats"] == "false" {
 		logger.Get().Debugw("No stats Logging for" + v.GetContainer().Names[0])
 		return nil
 	}
 	stats := v.GetStats()
+
 	var b []byte
 	if w.Props.LogStats == StatsLogCumulated {
 		b, err := json.Marshal(tracker.CumulateStatsInfo(stats))
@@ -241,11 +262,12 @@ func (w *Holder) getStatsInfo(v tracker.TrackElement) *Message {
 		}
 
 		return &Message{
-			Time:        time.Now(),
-			Type:        MessageTypeStats,
-			Data:        []string{string(b)},
-			Attributes:  getFilledMessageAttributes(w, v),
-			SearchIndex: v.SearchIndex() + "_stats_cumulated",
+			Time:          time.Now(),
+			Type:          MessageTypeStats,
+			Data:          []string{string(b)},
+			Attributes:    getFilledMessageAttributes(w, v),
+			SearchIndex:   v.SearchIndex() + "_stats_cumulated",
+			StaticContent: getStaticContent(v),
 		}
 	}
 
@@ -256,11 +278,12 @@ func (w *Holder) getStatsInfo(v tracker.TrackElement) *Message {
 	}
 
 	return &Message{
-		Time:        time.Now(),
-		Type:        MessageTypeStats,
-		Data:        []string{string(b)},
-		Attributes:  getFilledMessageAttributes(w, v),
-		SearchIndex: v.SearchIndex() + "_stats",
+		Time:          time.Now(),
+		Type:          MessageTypeStats,
+		Data:          []string{string(b)},
+		Attributes:    getFilledMessageAttributes(w, v),
+		SearchIndex:   v.SearchIndex() + "_stats",
+		StaticContent: getStaticContent(v),
 	}
 }
 
@@ -272,6 +295,7 @@ func getFilledValue(value, fallback string) string {
 }
 
 func getFilledMessageAttributes(holder *Holder, v tracker.TrackElement) Attributes {
+
 	if holder.Props.SwarmMode {
 		return Attributes{
 			Containername: getFilledValue(v.GetContainer().Labels["com.docker.swarm.task.name"], v.GetContainer().Names[0]),
@@ -299,17 +323,17 @@ func (w *Holder) getLogs(v tracker.TrackElement) *Message {
 
 	for _, value := range logs {
 		strLogs = append(strLogs, string(value))
-
 	}
 
 	if len(strLogs) > 0 {
 		logger.Get().Debugw("Logs from " + v.GetContainer().Names[0])
 		return &Message{
-			Time:        time.Now(),
-			Type:        MessageTypeLog,
-			Data:        strLogs,
-			SearchIndex: v.SearchIndex() + "_logs",
-			Attributes:  getFilledMessageAttributes(w, v),
+			Time:          time.Now(),
+			Type:          MessageTypeLog,
+			Data:          strLogs,
+			SearchIndex:   v.SearchIndex() + "_logs",
+			Attributes:    getFilledMessageAttributes(w, v),
+			StaticContent: getStaticContent(v),
 		}
 	}
 	logger.Get().Debugw("No Logs from " + v.GetContainer().Names[0])

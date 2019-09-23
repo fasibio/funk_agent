@@ -128,6 +128,10 @@ func (t *TrackerMock) GetLogs() []tracker.TrackerLogs {
 	return res
 }
 
+func (t *TrackerMock) GetStaticContent() string {
+	return "{}"
+}
+
 func (t *TrackerMock) GetContainer() types.Container {
 	return t.Con
 }
