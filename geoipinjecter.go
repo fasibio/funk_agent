@@ -14,8 +14,8 @@ var geoIPDatabase *geoip2.Reader
 var mutex sync.Mutex
 
 func InitGeoIP() GeoReader {
-	snippets.EnsureDir("./assets")
-	snippets.EnsureDir("./assets/geoip")
+	snippets.EnsureDir("./tmpassets")
+	snippets.EnsureDir("./tmpassets/geoip")
 	updateInfo := make(chan string, 2)
 	geoipdbupdater.NewGEOIPUpdateTicker(updateInfo)
 
