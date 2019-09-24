@@ -320,3 +320,33 @@ func TestCumulateStatsInfo(t *testing.T) {
 		})
 	}
 }
+
+func TestTracker_GetStaticContent(t *testing.T) {
+	type fields struct {
+	}
+	tests := []struct {
+		name      string
+		container types.Container
+		want      string
+	}{
+		{
+			name: "test that will look for the right label",
+			container: types.Container{
+				Labels: map[string]string{
+					"funk.log.staticcontent": `{"stage": "dev"}`,
+				},
+			},
+			want: `{"stage": "dev"}`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tr := &Tracker{
+				container: tt.container,
+			}
+			if got := tr.GetStaticContent(); got != tt.want {
+				t.Errorf("Tracker.GetStaticContent() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
