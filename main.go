@@ -336,6 +336,9 @@ func (w *Holder) injectGeoIpInformation(value, keyword string) (string, error) {
 	json.Unmarshal([]byte(value), &valueobj)
 	values := valueobj.(map[string]interface{})
 	ip := values[keyword[1:]]
+	if ip == nil {
+		return value, fmt.Errorf("Field %s not found", keyword)
+	}
 	geodata, err := w.GeoReader.GetGeoDataByIP(ip.(string))
 	if err != nil {
 		return value, err
