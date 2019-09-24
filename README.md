@@ -20,7 +20,7 @@ CONNECTION_KEY | string | The Key to authenticate against [funk-server](https://
 INSECURE_SKIP_VERIFY | false (default) or true | disable ssl verification for server connection | false
 LOG_STATS | all cumulated(default) or no | this agent should be collect statsinformation (cumulated send the mostly needed Statsinfos like : RamUsageMb, CPUUsagePercent...) | false
 SWARM_MODE | false (default) or true | Agent run on a swarm Cluster. Get better Metainformation about the Containers. | false
-LOG_LEVEL | debug | info (default) | warn | error |Which log-level for the agent own logs | false
+LOG_LEVEL | debug or info (default) or warn or error |Which log-level for the agent own logs | false
 ENABLE_GEO_IP_INJECT  | false (default) or true | Will download a [geolite2](https://www.maxmind.com) DB to get geoinfomation by IP Adresses | false
 
 
