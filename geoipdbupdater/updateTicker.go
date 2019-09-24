@@ -4,6 +4,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -25,13 +26,29 @@ var DefaultGeoIPurlParams = geoIPurlParams{
 const DownloadURL = "https://geolite.maxmind.com/download/geoip/database/GeoLite2-City.tar.gz"
 
 func NewGEOIPUpdateTicker(geoIPReadyToUpdatePath chan string) error {
-
-	if updatedPath, err := downloadAndExtract(); err == nil {
-		geoIPReadyToUpdatePath <- updatedPath
+	defaultPath := path.Join(DefaultGeoIPurlParams.AssetPath, "GeoLite2-City.mmdb")
+	stats, err := os.Stat(defaultPath)
+	if err == nil {
+		if stats.ModTime().After(time.Now().Add(24 * time.Hour)) {
+			logger.Get().Debug("GeoIpUpdateTicker: File is older than one days so update")
+			if updatedPath, err := downloadAndExtract(); err == nil {
+				geoIPReadyToUpdatePath <- updatedPath
+			} else {
+				logger.Get().Error(err)
+				return err
+			}
+		} else {
+			geoIPReadyToUpdatePath <- defaultPath
+		}
 	} else {
-		logger.Get().Error(err)
-		return err
+		if updatedPath, err := downloadAndExtract(); err == nil {
+			geoIPReadyToUpdatePath <- updatedPath
+		} else {
+			logger.Get().Error(err)
+			return err
+		}
 	}
+
 	ticker := time.NewTicker(27 * time.Hour)
 	go func() {
 		for range ticker.C {

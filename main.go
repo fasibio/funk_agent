@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"sync"
@@ -331,6 +330,31 @@ func getFilledMessageAttributes(holder *Holder, v tracker.TrackElement) Attribut
 
 }
 
+func (w *Holder) injectGeoIpInformation(value, keyword string) (string, error) {
+	logger.Get().Debug("All param set to get geodata from this container")
+	var valueobj interface{}
+	json.Unmarshal([]byte(value), &valueobj)
+	values := valueobj.(map[string]interface{})
+	ip := values[keyword[1:]]
+	geodata, err := w.GeoReader.GetGeoDataByIP(ip.(string))
+	if err != nil {
+		return value, err
+	}
+
+	type location struct {
+		Lon float64 `json:"lon,omitempty"`
+		Lat float64 `json:"lat,omitempty"`
+	}
+
+	values["funkgeoip.location"] = fmt.Sprintf("%v,%v", geodata.Location.Latitude, geodata.Location.Longitude)
+	values["funkgeoip.location_timezone"] = geodata.Location.TimeZone
+	values["funkgeoip.city_name"] = geodata.City.Names["en"]
+	values["funkgeoip.postal_code"] = geodata.Postal.Code
+	values["funkgeoip.accuracy_radius"] = geodata.Location.AccuracyRadius
+	geoinjectdata, err := json.Marshal(values)
+	return string(geoinjectdata), err
+}
+
 func (w *Holder) getLogs(v tracker.TrackElement) *Message {
 	if v.GetContainer().Labels["funk.log.logs"] == "false" {
 		logger.Get().Debugw("No logs Logging for " + v.GetContainer().Names[0])
@@ -342,35 +366,14 @@ func (w *Holder) getLogs(v tracker.TrackElement) *Message {
 	for _, value := range logs {
 		if w.Props.EnableGeoIpReader && v.GetContainer().Labels["funk.log.geodatafromip"] != "" {
 			keyword := v.GetContainer().Labels["funk.log.geodatafromip"]
-			logger.Get().Debug("All param set to get geodata from this container")
-			var valueobj interface{}
-			json.Unmarshal([]byte(value), &valueobj)
-			values := valueobj.(map[string]interface{})
-			ip := values[keyword[1:]]
-			geodata, err := w.GeoReader.GetGeoDataByIP(ip.(string))
+
+			injectValue, err := w.injectGeoIpInformation(string(value), keyword)
 			if err != nil {
-				logger.Get().Errorw("error by get geodata from ip" + err.Error())
+				logger.Get().Error("Error by inject geoip data " + err.Error())
+				strLogs = append(strLogs, string(value))
+			} else {
+				strLogs = append(strLogs, injectValue)
 			}
-
-			type location struct {
-				Lon float64 `json:"lon,omitempty"`
-				Lat float64 `json:"lat,omitempty"`
-			}
-
-			values["geoip.location"] = location{
-				Lon: geodata.Location.Longitude,
-				Lat: geodata.Location.Latitude,
-			}
-			values["geoip.location_timezone"] = geodata.Location.TimeZone
-			values["geoip.city_name"] = geodata.City.Names["en"]
-			values["geoip.postal_code"] = geodata.Postal.Code
-
-			geoinjectdata, err := json.Marshal(values)
-			if err != nil {
-				logger.Get().Error(err)
-			}
-			strLogs = append(strLogs, string(geoinjectdata))
-			log.Println(geodata)
 		} else {
 			strLogs = append(strLogs, string(value))
 		}
