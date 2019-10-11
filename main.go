@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 	"sync"
 	"time"
 
@@ -80,6 +81,8 @@ const (
 	ClikeyLoglevel string = "loglevel"
 	// EnableGeoIPInject allows to get an location by ip address. This will download a database from https://www.maxmind.com
 	EnableGeoIPInject string = "enableGeoIPInject"
+	// StatsIntervall set the second where statsinfo will be send
+	StatsIntervall string = "statsintervall"
 )
 
 func main() {
@@ -125,6 +128,12 @@ func main() {
 			Name:   EnableGeoIPInject,
 			EnvVar: "ENABLE_GEO_IP_INJECT",
 			Usage:  "allows to get an geo location by ip address. This will download a database from https://www.maxmind.com",
+		},
+		cli.StringFlag{
+			Name:   StatsIntervall,
+			EnvVar: "STATSINTERVALL",
+			Usage:  "set the second where statsinfo will be send to server",
+			Value:  "15",
 		},
 	}
 	if err := app.Run(os.Args); err != nil {
@@ -179,8 +188,29 @@ func run(c *cli.Context) error {
 	holder.client = cli
 	go holder.updateTrackingContainer(containerChan, &mu)
 	ticker := time.NewTicker(5 * time.Second)
+
+	statsSecond, err := strconv.ParseInt(c.String(StatsIntervall), 10, 64)
+	if err != nil {
+		return err
+	}
+	if holder.Props.LogStats != StatsLogNo {
+		statsTicker := time.NewTicker(time.Duration(statsSecond) * time.Second)
+		go holder.uploadStatsInfromation(&mu, statsTicker)
+	}
 	holder.uploadTrackingInformation(&mu, ticker)
 	return nil
+}
+
+func (w *Holder) uploadStatsInfromation(mu *sync.Mutex, intervall *time.Ticker) {
+	for {
+		for range intervall.C {
+			mu.Lock()
+			for _, v := range w.trackingContainers {
+				w.SaveStatsInfo(v)
+			}
+			mu.Unlock()
+		}
+	}
 }
 
 // Will stock the process forever like a tcplistener
@@ -215,18 +245,36 @@ func (w *Holder) updateTrackingContainer(containerChan chan []types.Container, m
 	}
 }
 
-// SaveTrackingInfo collect all logs and statsinfo and send this to the server
-func (w *Holder) SaveTrackingInfo(data tracker.TrackElement) {
+// SaveStatsInfo collect all statsinfo and send them to server
+func (w *Holder) SaveStatsInfo(data tracker.TrackElement) {
 	var msg []Message
-	logs := w.getLogs(data)
-	if logs != nil {
-		msg = append(msg, *logs)
-	}
 	if w.Props.LogStats != StatsLogNo {
 		stats := w.getStatsInfo(data)
 		if stats != nil {
 			msg = append(msg, *stats)
 		}
+	}
+	if len(msg) != 0 {
+		err := w.writeToServer(w.streamCon, msg)
+		if err != nil {
+			logger.Get().Warnw("Error by write Data to Server" + err.Error() + " try to reconnect")
+
+			err := w.openSocketConn(true)
+			if err != nil {
+				logger.Get().Warnw("Can not connect try again later: " + err.Error())
+			} else {
+				logger.Get().Infow("Connected to Funk-Server")
+			}
+		}
+	}
+}
+
+// SaveTrackingInfo collect all logs and send this to the server
+func (w *Holder) SaveTrackingInfo(data tracker.TrackElement) {
+	var msg []Message
+	logs := w.getLogs(data)
+	if logs != nil {
+		msg = append(msg, *logs)
 	}
 	if len(msg) != 0 {
 		err := w.writeToServer(w.streamCon, msg)
@@ -274,7 +322,7 @@ func (w *Holder) getStatsInfo(v tracker.TrackElement) *Message {
 	if w.Props.LogStats == StatsLogCumulated {
 		b, err := json.Marshal(tracker.CumulateStatsInfo(stats))
 		if err != nil {
-			logger.Get().Errorw("Error by Marshal stats:" + err.Error())
+			logger.Get().Errorw("Error by Marshal stats:"+err.Error(), "containername", v.GetContainer().Names[0])
 			return nil
 		}
 

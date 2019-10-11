@@ -22,7 +22,7 @@ LOG_STATS | all, cumulated(default) or no | this agent should be collect statsin
 SWARM_MODE | false (default) or true | Agent run on a swarm Cluster. Get better Metainformation about the Containers. | false
 LOG_LEVEL | debug | info (default) | warn | error |Which log-level for the agent own logs | false
 ENABLE_GEO_IP_INJECT  | false (default) or true | Will download a [geolite2](https://www.maxmind.com) DB to get geoinfomation by IP Adresses | false
-
+STATSINTERVALL | 15 | If LOG_STATS is not no. than the intervall to collect this information
 
 ## Possible Labels you can give each to tracking dockercontainer (by labels/annotation)
 
