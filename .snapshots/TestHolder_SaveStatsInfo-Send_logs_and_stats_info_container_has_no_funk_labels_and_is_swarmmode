@@ -1,0 +1,18 @@
+([]main.Message) (len=1) {
+  (main.Message) {
+    Time: (time.Time) 1974-05-19 01:02:03.000000004 +0000 UTC,
+    Type: (main.MessageType) (len=5) "STATS",
+    Data: ([]string) (len=1) {
+      (string) (len=744) "{\"read\":\"mock\",\"preread\":\"mock\",\"pids_stats\":{\"current\":0},\"num_procs\":0,\"storage_stats\":{},\"cpu_stats\":{\"cpu_usage\":{\"total_usage\":0,\"percpu_usage\":null,\"usage_in_kernelmode\":0,\"usage_in_usermode\":0},\"system_cpu_usage\":10,\"online_cpus\":0,\"throttling_data\":{\"periods\":0,\"throttled_periods\":0,\"throttled_time\":0}},\"precpu_stats\":{\"cpu_usage\":{\"total_usage\":0,\"percpu_usage\":null,\"usage_in_kernelmode\":0,\"usage_in_usermode\":0},\"system_cpu_usage\":0,\"online_cpus\":0,\"throttling_data\":{\"periods\":0,\"throttled_periods\":0,\"throttled_time\":0}},\"memory_stats\":{\"usage\":0,\"max_usage\":0,\"stats\":null,\"limit\":0},\"id\":\"\",\"networks\":{\"eth0\":{\"rx_bytes\":0,\"rx_packets\":0,\"rx_errors\":0,\"rx_dropped\":0,\"tx_bytes\":0,\"tx_packets\":0,\"tx_errors\":0,\"tx_dropped\":0}}}"
+    },
+    SearchIndex: (string) (len=15) "MockIndex_stats",
+    Attributes: (main.Attributes) {
+      Host: (string) (len=9) "test_unit",
+      Containername: (string) (len=26) "com.docker.swarm.task.name",
+      Servicename: (string) (len=29) "com.docker.swarm.service.name",
+      Namespace: (string) (len=26) "com.docker.stack.namespace",
+      ContainerID: (string) (len=18) "mockContainer-0001"
+    },
+    StaticContent: (string) (len=2) "{}"
+  }
+}

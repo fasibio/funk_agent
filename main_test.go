@@ -307,3 +307,114 @@ func TestHolder_SaveTrackingInfo(t *testing.T) {
 		})
 	}
 }
+
+func TestHolder_SaveStatsInfo(t *testing.T) {
+	wayback := time.Date(1974, time.May, 19, 1, 2, 3, 4, time.UTC)
+	patch := monkey.Patch(time.Now, func() time.Time { return wayback })
+	defer patch.Unpatch()
+	tests := []struct {
+		name                  string
+		itSelfNamedHost       string
+		logStats              StatsLog
+		swarmMode             bool
+		arg                   func() tracker.TrackElement
+		writeToServerHasError bool
+	}{
+		{
+			name:                  "Send logs and stats info container has no funk labels and is swarmmode",
+			writeToServerHasError: false,
+			itSelfNamedHost:       "test_unit",
+			logStats:              StatsLogAll,
+			swarmMode:             true,
+			arg: func() tracker.TrackElement {
+				res := TrackerMock{
+					Log: `{"mock": "str"}`,
+					Stats: tracker.Stats{
+						Read:    "mock",
+						Preread: "mock",
+						CPUStats: tracker.CPUStats{
+							SystemCPUUsage: 10,
+						},
+					},
+					Con: types.Container{
+						Labels: map[string]string{
+							"com.docker.swarm.task.name":    "com.docker.swarm.task.name",
+							"com.docker.swarm.service.name": "com.docker.swarm.service.name",
+							"com.docker.stack.namespace":    "com.docker.stack.namespace",
+						},
+						Names:   []string{"mockContainer"},
+						ImageID: "mockContainer-0001",
+					},
+				}
+				return &res
+			},
+		},
+		{
+			name:                  "Send logs and stats info container has no funk labels and is swarmmode but container has label not log stats",
+			writeToServerHasError: false,
+			itSelfNamedHost:       "test_unit",
+			logStats:              StatsLogAll,
+			swarmMode:             true,
+			arg: func() tracker.TrackElement {
+				res := TrackerMock{
+					Log: `{"mock": "str"}`,
+					Stats: tracker.Stats{
+						Read:    "mock",
+						Preread: "mock",
+						CPUStats: tracker.CPUStats{
+							SystemCPUUsage: 10,
+						},
+					},
+					Con: types.Container{
+						Labels: map[string]string{
+							"com.docker.swarm.task.name":    "com.docker.swarm.task.name",
+							"com.docker.swarm.service.name": "com.docker.swarm.service.name",
+							"com.docker.stack.namespace":    "com.docker.stack.namespace",
+							"funk.log.stats":                "false",
+						},
+						Names:   []string{"mockContainer"},
+						ImageID: "mockContainer-0001",
+					},
+				}
+				return &res
+			},
+		},
+		{
+			name:                  "Want to Send only logs no stats container has no funk labels and no swarmmode but writeToServerSend error so try to reconnect",
+			writeToServerHasError: true,
+			itSelfNamedHost:       "test_unit",
+			logStats:              StatsLogNo,
+			swarmMode:             false,
+			arg: func() tracker.TrackElement {
+				res := TrackerMock{
+					Log: `{"mock": "str"}`,
+					Con: types.Container{
+						Names:   []string{"mockContainer"},
+						ImageID: "mockContainer-0001",
+					},
+				}
+				return &res
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := &Holder{
+				Props: Props{
+					LogStats:  tt.logStats,
+					SwarmMode: tt.swarmMode,
+				},
+				itSelfNamedHost: tt.itSelfNamedHost,
+				writeToServer: func(con *websocket.Conn, msg []Message) error {
+					if tt.writeToServerHasError {
+						return errors.New("Mock error")
+					}
+					cupaloy.SnapshotT(t, msg)
+					return nil
+				},
+			}
+			w.SaveStatsInfo(tt.arg())
+		})
+	}
+}
