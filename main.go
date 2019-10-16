@@ -320,9 +320,10 @@ func (w *Holder) getStatsInfo(v tracker.TrackElement) *Message {
 
 	var b []byte
 	if w.Props.LogStats == StatsLogCumulated {
-		b, err := json.Marshal(tracker.CumulateStatsInfo(stats))
+		stats := tracker.CumulateStatsInfo(stats)
+		b, err := json.Marshal(stats)
 		if err != nil {
-			logger.Get().Errorw("Error by Marshal stats:"+err.Error(), "containername", v.GetContainer().Names[0])
+			logger.Get().Errorw("Error by Marshal stats:"+err.Error(), "containername", v.GetContainer().Names[0], "stats", stats)
 			return nil
 		}
 

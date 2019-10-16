@@ -232,12 +232,12 @@ func CumulateStatsInfo(stats Stats) CumulateStats {
 }
 
 type CumulateStats struct {
-	CPUUsagePercent float64 `json:"cpu_usage_percent,omitempty"`
-	RamUsagePercent float64 `json:"ram_usage_percent,omitempty"`
-	RamUsageMb      float64 `json:"ram_usage_mb,omitempty"`
-	RamLimitMb      float64 `json:"ram_limit_mb,omitempty"`
-	NetIOReceiveMb  float64 `json:"net_io_usage_mb,omitempty"`
-	NetIOTransmitMb float64 `json:"net_io_transmit_mb,omitempty"`
+	CPUUsagePercent float64 `json:"cpu_usage_percent"`
+	RamUsagePercent float64 `json:"ram_usage_percent"`
+	RamUsageMb      float64 `json:"ram_usage_mb"`
+	RamLimitMb      float64 `json:"ram_limit_mb"`
+	NetIOReceiveMb  float64 `json:"net_io_usage_mb"`
+	NetIOTransmitMb float64 `json:"net_io_transmit_mb"`
 }
 
 type Stats struct {
