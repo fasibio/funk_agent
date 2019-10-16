@@ -17,6 +17,7 @@ import (
 	"github.com/fasibio/funk_agent/tracker"
 	"github.com/gorilla/websocket"
 	"github.com/urfave/cli"
+	"go.uber.org/zap"
 )
 
 // Holder hold information of all needed Information after startup
@@ -271,6 +272,8 @@ func (w *Holder) SaveStatsInfo(data tracker.TrackElement) {
 
 // SaveTrackingInfo collect all logs and send this to the server
 func (w *Holder) SaveTrackingInfo(data tracker.TrackElement) {
+	stoutlog := getLoggerWithContainerInformation(logger.Get(), data.GetContainer())
+
 	var msg []Message
 	logs := w.getLogs(data)
 	if logs != nil {
@@ -279,19 +282,21 @@ func (w *Holder) SaveTrackingInfo(data tracker.TrackElement) {
 	if len(msg) != 0 {
 		err := w.writeToServer(w.streamCon, msg)
 		if err != nil {
-			logger.Get().Warnw("Error by write Data to Server" + err.Error() + " try to reconnect")
+			stoutlog.Warnw("Error by write Data to Server" + err.Error() + " try to reconnect")
 
 			err := w.openSocketConn(true)
 			if err != nil {
-				logger.Get().Warnw("Can not connect try again later: " + err.Error())
+				stoutlog.Warnw("Can not connect try again later: " + err.Error())
 			} else {
-				logger.Get().Infow("Connected to Funk-Server")
+				stoutlog.Infow("Connected to Funk-Server")
 			}
 		}
 	}
 }
 
 func getStaticContent(v tracker.TrackElement) string {
+	stoutlog := getLoggerWithContainerInformation(logger.Get(), v.GetContainer())
+
 	staticcontent := v.GetStaticContent()
 	if staticcontent == "" {
 		staticcontent = "{}"
@@ -299,21 +304,23 @@ func getStaticContent(v tracker.TrackElement) string {
 	var staticcontentobj interface{}
 	err := json.Unmarshal([]byte(staticcontent), &staticcontentobj)
 	if err != nil {
-		logger.Get().Error(err)
+		stoutlog.Error("Error by marshal StaticContent:" + err.Error())
 		return "{}"
 	}
 
 	staticcontentstr, err := json.Marshal(staticcontentobj)
 	if err != nil {
-		logger.Get().Error(err)
+		stoutlog.Error("Error by marshal StaticContent:" + err.Error())
 		return "{}"
 	}
 	return string(staticcontentstr)
 }
 
 func (w *Holder) getStatsInfo(v tracker.TrackElement) *Message {
+	stoutlog := getLoggerWithContainerInformation(logger.Get(), v.GetContainer())
+
 	if v.GetContainer().Labels["funk.log.stats"] == "false" {
-		logger.Get().Debugw("No stats Logging for" + v.GetContainer().Names[0])
+		stoutlog.Debugw("No stats Logging for" + v.GetContainer().Names[0])
 		return nil
 	}
 	stats := v.GetStats()
@@ -323,7 +330,7 @@ func (w *Holder) getStatsInfo(v tracker.TrackElement) *Message {
 		stats := tracker.CumulateStatsInfo(stats)
 		b, err := json.Marshal(stats)
 		if err != nil {
-			logger.Get().Errorw("Error by Marshal stats:"+err.Error(), "containername", v.GetContainer().Names[0], "stats", stats)
+			stoutlog.Errorw("Error by Marshal stats:"+err.Error(), "stats", stats)
 			return nil
 		}
 
@@ -339,7 +346,7 @@ func (w *Holder) getStatsInfo(v tracker.TrackElement) *Message {
 
 	b, err := json.Marshal(stats)
 	if err != nil {
-		logger.Get().Errorw("Error by Marshal stats:" + err.Error())
+		stoutlog.Errorw("Error by Marshal stats:" + err.Error())
 		return nil
 	}
 
@@ -406,10 +413,15 @@ func (w *Holder) injectGeoIpInformation(value, keyword string) (string, error) {
 	geoinjectdata, err := json.Marshal(values)
 	return string(geoinjectdata), err
 }
-
+func getLoggerWithContainerInformation(logs *zap.SugaredLogger, container types.Container) *zap.SugaredLogger {
+	return logs.With(
+		"containername", container.Names[0],
+	)
+}
 func (w *Holder) getLogs(v tracker.TrackElement) *Message {
+	stoutlog := getLoggerWithContainerInformation(logger.Get(), v.GetContainer())
 	if v.GetContainer().Labels["funk.log.logs"] == "false" {
-		logger.Get().Debugw("No logs Logging for " + v.GetContainer().Names[0])
+		stoutlog.Debugw("No logs Logging for " + v.GetContainer().Names[0])
 		return nil
 	}
 	logs := v.GetLogs()
@@ -421,7 +433,7 @@ func (w *Holder) getLogs(v tracker.TrackElement) *Message {
 
 			injectValue, err := w.injectGeoIpInformation(string(value), keyword)
 			if err != nil {
-				logger.Get().Error("Error by inject geoip data " + err.Error())
+				stoutlog.Warnw("Error by inject geoip data " + err.Error())
 				strLogs = append(strLogs, string(value))
 			} else {
 				strLogs = append(strLogs, injectValue)
