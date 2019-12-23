@@ -330,7 +330,7 @@ func (w *Holder) getStatsInfo(v tracker.TrackElement) *Message {
 		stats := tracker.CumulateStatsInfo(stats)
 		b, err := json.Marshal(stats)
 		if err != nil {
-			stoutlog.Errorw("Error by Marshal stats:"+err.Error(), "stats", stats)
+			stoutlog.Warnw("Error by Marshal stats:"+err.Error(), "stats", stats)
 			return nil
 		}
 
@@ -346,7 +346,7 @@ func (w *Holder) getStatsInfo(v tracker.TrackElement) *Message {
 
 	b, err := json.Marshal(stats)
 	if err != nil {
-		stoutlog.Errorw("Error by Marshal stats:" + err.Error())
+		stoutlog.Warnw("Error by Marshal stats:"+err.Error(), "stats", stats)
 		return nil
 	}
 
