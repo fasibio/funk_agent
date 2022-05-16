@@ -17,7 +17,7 @@ require (
 	github.com/go-chi/chi v4.0.2+incompatible // indirect
 	github.com/go-chi/cors v1.0.0 // indirect
 	github.com/golang/snappy v0.0.1 // indirect
-	github.com/gorilla/websocket v1.4.0
+	github.com/gorilla/websocket v1.4.1
 	github.com/mholt/archiver v3.1.1+incompatible
 	github.com/nwaples/rardecode v1.0.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
