@@ -9,7 +9,7 @@ github.com/bradleyjkemp/cupaloy/v2/internal
 github.com/cdreier/golang-snippets/snippets
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
-# github.com/docker/distribution v2.7.1+incompatible
+# github.com/docker/distribution v2.8.2+incompatible
 github.com/docker/distribution/digestset
 github.com/docker/distribution/reference
 # github.com/docker/docker v1.13.1
